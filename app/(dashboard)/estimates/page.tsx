@@ -1,0 +1,63 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { QuoteStatusBadge } from "@/components/ui/Badge";
+import { Table, TableHead, TableBody, Th, Tr, Td } from "@/components/ui/Table";
+import { IconPlus } from "@/components/icons";
+import { getClientById, getQuoteTotal, getWorkOrderById, quotes } from "@/lib/data";
+import { formatCurrency, formatDate } from "@/lib/utils";
+
+export default function EstimatesPage() {
+  const pendingCount = quotes.filter((quote) => quote.status === "sent").length;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Estimates"
+        description={`${pendingCount} estimates sent and awaiting client response.`}
+        action={
+          <Button>
+            <IconPlus className="h-4 w-4" />
+            New Estimate
+          </Button>
+        }
+      />
+
+      <Card>
+        <Table>
+          <TableHead>
+            <Th>Estimate</Th>
+            <Th>Client</Th>
+            <Th>Status</Th>
+            <Th>Issued</Th>
+            <Th>Expires</Th>
+            <Th className="text-right">Total</Th>
+          </TableHead>
+          <TableBody>
+            {quotes.map((quote) => {
+              const workOrder = getWorkOrderById(quote.workOrderId);
+              const client = workOrder ? getClientById(workOrder.clientId) : undefined;
+              return (
+                <Tr key={quote.id}>
+                  <Td>
+                    <p className="font-medium text-slate-900">{quote.number}</p>
+                    <p className="text-xs text-slate-500">{workOrder?.title}</p>
+                  </Td>
+                  <Td>{client?.name}</Td>
+                  <Td>
+                    <QuoteStatusBadge status={quote.status} />
+                  </Td>
+                  <Td>{formatDate(quote.issueDate)}</Td>
+                  <Td>{formatDate(quote.expiryDate)}</Td>
+                  <Td className="text-right font-medium text-slate-900">
+                    {formatCurrency(getQuoteTotal(quote))}
+                  </Td>
+                </Tr>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
+  );
+}
