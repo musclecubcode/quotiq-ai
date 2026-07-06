@@ -59,8 +59,13 @@ function getSnapshot(): WorkOrder[] {
   return cachedWorkOrders;
 }
 
+// A single stable empty-array constant — not `[]` inline, which would
+// allocate a new reference on every call and never compare equal to its
+// previous return, tripping useSyncExternalStore's infinite-loop guard.
+const EMPTY_WORK_ORDERS: WorkOrder[] = [];
+
 function getServerSnapshot(): WorkOrder[] {
-  return [];
+  return EMPTY_WORK_ORDERS;
 }
 
 function writeAll(workOrders: WorkOrder[]): void {

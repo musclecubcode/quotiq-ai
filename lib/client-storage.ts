@@ -63,8 +63,13 @@ function getSnapshot(): Client[] {
   return cachedClients;
 }
 
+// A single stable empty-array constant — not `[]` inline, which would
+// allocate a new reference on every call and never compare equal to its
+// previous return, tripping useSyncExternalStore's infinite-loop guard.
+const EMPTY_CLIENTS: Client[] = [];
+
 function getServerSnapshot(): Client[] {
-  return [];
+  return EMPTY_CLIENTS;
 }
 
 function writeAll(clients: Client[]): void {
