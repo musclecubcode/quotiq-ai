@@ -32,3 +32,10 @@ export function getInitials(name: string): string {
     .map((part) => part[0]?.toUpperCase())
     .join("");
 }
+
+export function getClientFullName(client: {
+  firstName: string;
+  lastName: string;
+}): string {
+  return `${client.firstName} ${client.lastName}`.trim();
+}

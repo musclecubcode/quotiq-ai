@@ -3,6 +3,7 @@ import type {
   ClientStatus,
   InvoiceStatus,
   QuoteStatus,
+  WorkOrderPriority,
   WorkOrderStatus,
 } from "@/lib/types";
 
@@ -47,6 +48,18 @@ const workOrderStatusMap: Record<WorkOrderStatus, { label: string; tone: Tone }>
 
 export function WorkOrderStatusBadge({ status }: { status: WorkOrderStatus }) {
   const { label, tone } = workOrderStatusMap[status];
+  return <Badge tone={tone}>{label}</Badge>;
+}
+
+const priorityMap: Record<WorkOrderPriority, { label: string; tone: Tone }> = {
+  low: { label: "Low", tone: "gray" },
+  medium: { label: "Medium", tone: "blue" },
+  high: { label: "High", tone: "amber" },
+  urgent: { label: "Urgent", tone: "red" },
+};
+
+export function PriorityBadge({ priority }: { priority: WorkOrderPriority }) {
+  const { label, tone } = priorityMap[priority];
   return <Badge tone={tone}>{label}</Badge>;
 }
 

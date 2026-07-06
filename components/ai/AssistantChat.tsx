@@ -16,7 +16,7 @@ const initialMessages: Message[] = [
     id: "welcome",
     role: "assistant",
     content:
-      "Hi Ray — I'm your estimating assistant. Ask me to draft an estimate, flag jobs falling behind, or summarize what's outstanding on invoices.",
+      "Hi Ray — I'm your estimating assistant. Ask me to draft an estimate, flag work orders falling behind, or summarize what's outstanding on invoices.",
   },
 ];
 
@@ -138,7 +138,7 @@ export function AssistantChat() {
             }
           }}
           rows={1}
-          placeholder="Ask about estimates, jobs, or invoices…"
+          placeholder="Ask about estimates, work orders, or invoices…"
           className="max-h-32 flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         />
         <button

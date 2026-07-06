@@ -6,11 +6,11 @@ import {
   quotes,
   workOrders,
 } from "./data";
-import { formatCurrency, formatDate } from "./utils";
+import { formatCurrency, formatDate, getClientFullName } from "./utils";
 
 export const suggestedPrompts = [
   "Which invoices are overdue?",
-  "Are any jobs behind schedule?",
+  "Are any work orders behind schedule?",
   "Draft an estimate for a bathroom remodel",
   "What estimates are still pending?",
 ];
@@ -31,23 +31,26 @@ export function generateAssistantReply(input: string): string {
     const lines = overdue.map((invoice) => {
       const workOrder = getWorkOrderById(invoice.workOrderId);
       const client = workOrder ? getClientById(workOrder.clientId) : undefined;
-      return `• ${invoice.number} — ${client?.name} — ${formatCurrency(
+      return `• ${invoice.number} — ${client && getClientFullName(client)} — ${formatCurrency(
         invoice.amount - invoice.amountPaid
       )} past due since ${formatDate(invoice.dueDate)}`;
     });
     return `You have ${overdue.length} overdue invoice(s):\n${lines.join("\n")}`;
   }
 
-  if (text.includes("behind") || (text.includes("schedule") && text.includes("job"))) {
+  if (
+    text.includes("behind") ||
+    (text.includes("schedule") && (text.includes("job") || text.includes("work order")))
+  ) {
     const atRisk = workOrders.filter((workOrder) => workOrder.status === "on_hold");
     if (atRisk.length === 0) {
-      return "All active jobs are on track — nothing is on hold right now.";
+      return "All active work orders are on track — nothing is on hold right now.";
     }
     const lines = atRisk.map((workOrder) => {
       const client = getClientById(workOrder.clientId);
-      return `• ${workOrder.title} for ${client?.name} — on hold at ${workOrder.progress}% complete`;
+      return `• ${workOrder.title} for ${client && getClientFullName(client)} — on hold at ${workOrder.progress}% complete`;
     });
-    return `These jobs need attention:\n${lines.join("\n")}`;
+    return `These work orders need attention:\n${lines.join("\n")}`;
   }
 
   if (
@@ -82,12 +85,12 @@ export function generateAssistantReply(input: string): string {
     const lines = pending.map((quote) => {
       const workOrder = getWorkOrderById(quote.workOrderId);
       const client = workOrder ? getClientById(workOrder.clientId) : undefined;
-      return `• ${quote.number} — ${client?.name} — ${formatCurrency(
+      return `• ${quote.number} — ${client && getClientFullName(client)} — ${formatCurrency(
         getQuoteTotal(quote)
       )}, expires ${formatDate(quote.expiryDate)}`;
     });
     return `${pending.length} estimate(s) awaiting a response:\n${lines.join("\n")}`;
   }
 
-  return 'I can help draft estimates, summarize overdue invoices, or flag jobs that are behind schedule. Try asking "Which invoices are overdue?" or "Draft an estimate for a bathroom remodel."';
+  return 'I can help draft estimates, summarize overdue invoices, or flag work orders that are behind schedule. Try asking "Which invoices are overdue?" or "Draft an estimate for a bathroom remodel."';
 }

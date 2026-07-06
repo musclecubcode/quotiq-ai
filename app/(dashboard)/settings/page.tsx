@@ -1,12 +1,8 @@
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { Field, inputClass } from "@/components/ui/Field";
 import { getInitials } from "@/lib/utils";
-
-const inputClass =
-  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20";
-
-const labelClass = "mb-1.5 block text-sm font-medium text-slate-700";
 
 const team = [
   { name: "Ray Delgado", role: "Owner" },
@@ -56,80 +52,59 @@ export default function SettingsPage() {
             description="This information appears on estimates and invoices"
           />
           <form className="grid grid-cols-1 gap-4 px-5 py-5 sm:grid-cols-2">
-            <div>
-              <label className={labelClass} htmlFor="company-name">
-                Company name
-              </label>
+            <Field label="Company name" htmlFor="company-name">
               <input
                 id="company-name"
                 className={inputClass}
                 defaultValue="Delgado Builders"
               />
-            </div>
-            <div>
-              <label className={labelClass} htmlFor="license">
-                License number
-              </label>
+            </Field>
+            <Field label="License number" htmlFor="license">
               <input
                 id="license"
                 className={inputClass}
                 defaultValue="TX-GC-48213"
               />
-            </div>
-            <div>
-              <label className={labelClass} htmlFor="email">
-                Contact email
-              </label>
+            </Field>
+            <Field label="Contact email" htmlFor="email">
               <input
                 id="email"
                 type="email"
                 className={inputClass}
                 defaultValue="ray@delgadobuilders.com"
               />
-            </div>
-            <div>
-              <label className={labelClass} htmlFor="phone">
-                Phone
-              </label>
+            </Field>
+            <Field label="Phone" htmlFor="phone">
               <input
                 id="phone"
                 type="tel"
                 className={inputClass}
                 defaultValue="(512) 555-0102"
               />
-            </div>
-            <div className="sm:col-span-2">
-              <label className={labelClass} htmlFor="address">
-                Business address
-              </label>
+            </Field>
+            <Field label="Business address" htmlFor="address" className="sm:col-span-2">
               <input
                 id="address"
                 className={inputClass}
                 defaultValue="1220 S Congress Ave, Austin, TX 78704"
               />
-            </div>
-            <div>
-              <label className={labelClass} htmlFor="markup">
-                Default markup (%)
-              </label>
+            </Field>
+            <Field label="Default markup (%)" htmlFor="markup">
               <input
                 id="markup"
                 type="number"
                 className={inputClass}
                 defaultValue={18}
               />
-            </div>
-            <div>
-              <label className={labelClass} htmlFor="tax-rate">
-                Sales tax rate (%)
-              </label>
+            </Field>
+            <Field label="Sales tax rate (%)" htmlFor="tax-rate">
               <input
                 id="tax-rate"
                 type="number"
                 className={inputClass}
                 defaultValue={8.25}
               />
-            </div>
+            </Field>
             <div className="sm:col-span-2">
               <Button type="button" className="mt-2 w-fit">
                 Save changes
@@ -175,8 +150,8 @@ export default function SettingsPage() {
             defaultChecked
           />
           <Toggle
-            label="Job starting soon"
-            description="Text reminders 24 hours before a scheduled job starts"
+            label="Work order starting soon"
+            description="Text reminders 24 hours before a scheduled work order starts"
           />
         </div>
       </Card>

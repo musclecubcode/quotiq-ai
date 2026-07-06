@@ -66,7 +66,7 @@ export function ClientProfileTabs({
     { id: "overview", label: "Overview" },
     { id: "properties", label: `Properties (${properties.length})` },
     { id: "vehicles", label: `Vehicles (${vehicles.length})` },
-    { id: "jobs", label: `Jobs (${workOrders.length})` },
+    { id: "jobs", label: `Work Orders (${workOrders.length})` },
     { id: "estimates", label: `Estimates (${quotes.length})` },
     { id: "invoices", label: `Invoices (${invoices.length})` },
     { id: "photos", label: `Photos (${photos.length})` },
@@ -115,7 +115,9 @@ export function ClientProfileTabs({
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-slate-500">Address</dt>
-                  <dd className="text-right text-slate-900">{client.address}</dd>
+                  <dd className="text-right text-slate-900">
+                    {client.address}, {client.city}, {client.state} {client.zip}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-slate-500">Client since</dt>
@@ -135,7 +137,7 @@ export function ClientProfileTabs({
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-500">Total jobs</dt>
+                  <dt className="text-slate-500">Total work orders</dt>
                   <dd className="text-right text-slate-900">{workOrders.length}</dd>
                 </div>
                 <div className="flex justify-between gap-4">
@@ -147,6 +149,16 @@ export function ClientProfileTabs({
                   <dd className="text-right text-slate-900">{vehicles.length}</dd>
                 </div>
               </dl>
+            </Card>
+            <Card className="p-5 sm:col-span-2">
+              <h3 className="text-sm font-semibold text-slate-900">Notes</h3>
+              {client.notes?.trim() ? (
+                <p className="mt-3 whitespace-pre-line text-sm text-slate-700">
+                  {client.notes}
+                </p>
+              ) : (
+                <p className="mt-3 text-sm text-slate-500">No notes yet.</p>
+              )}
             </Card>
           </div>
         )}
@@ -217,11 +229,11 @@ export function ClientProfileTabs({
         {active === "jobs" && (
           <Card>
             {workOrders.length === 0 ? (
-              <EmptyState label="No jobs on file for this client yet." />
+              <EmptyState label="No work orders on file for this client yet." />
             ) : (
               <Table>
                 <TableHead>
-                  <Th>Job</Th>
+                  <Th>Work Order</Th>
                   <Th>Status</Th>
                   <Th>Timeline</Th>
                   <Th className="text-right">Budget</Th>
@@ -322,7 +334,7 @@ export function ClientProfileTabs({
         {active === "photos" && (
           <Card className="p-5">
             {photos.length === 0 ? (
-              <EmptyState label="No job photos uploaded for this client yet." />
+              <EmptyState label="No work order photos uploaded for this client yet." />
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {photos.map((photo) => (

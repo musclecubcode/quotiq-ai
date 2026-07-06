@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Quotiq AI — Contractor Estimating",
     short_name: "Quotiq AI",
     description:
-      "AI-powered estimating, job tracking, and invoicing for contractors.",
+      "AI-powered estimating, work order tracking, and invoicing for contractors.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",

@@ -13,11 +13,16 @@ export type ClientStatus = "active" | "lead" | "inactive";
 
 export interface Client {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   company?: string;
   email: string;
   phone: string;
   address: string;
+  city: string;
+  state: string;
+  zip: string;
+  notes?: string;
   status: ClientStatus;
   createdAt: string;
 }
@@ -52,6 +57,16 @@ export type WorkOrderStatus =
   | "completed"
   | "cancelled";
 
+export type WorkOrderCategory =
+  | "remodel"
+  | "repair"
+  | "installation"
+  | "inspection"
+  | "maintenance"
+  | "other";
+
+export type WorkOrderPriority = "low" | "medium" | "high" | "urgent";
+
 /**
  * A unit of work for a client. May optionally reference the Property or
  * Vehicle it concerns (e.g. a remodel references a Property, a fleet
@@ -64,6 +79,11 @@ export interface WorkOrder {
   propertyId?: string;
   vehicleId?: string;
   title: string;
+  category: WorkOrderCategory;
+  priority: WorkOrderPriority;
+  serviceAddress: string;
+  description: string;
+  internalNotes?: string;
   status: WorkOrderStatus;
   startDate: string;
   endDate: string;

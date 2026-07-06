@@ -24,7 +24,7 @@ import {
   quotes,
   workOrders,
 } from "@/lib/data";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, getClientFullName } from "@/lib/utils";
 
 export default function DashboardPage() {
   const stats = getDashboardStats();
@@ -45,7 +45,7 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Dashboard"
-        description="Welcome back — here's what's happening across your jobs today."
+        description="Welcome back — here's what's happening across your work orders today."
         action={
           <Link href="/estimates">
             <Button>
@@ -58,7 +58,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Active Jobs"
+          label="Active Work Orders"
           value={String(stats.activeWorkOrders)}
           icon={IconBriefcase}
           trend="Scheduled + in progress"
@@ -90,8 +90,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader
-            title="Active Jobs"
-            description="Jobs currently scheduled or in progress"
+            title="Active Work Orders"
+            description="Work orders currently scheduled or in progress"
             action={
               <Link
                 href="/jobs"
@@ -103,7 +103,9 @@ export default function DashboardPage() {
             }
           />
           <ul className="divide-y divide-slate-100">
-            {activeWorkOrders.map((workOrder) => (
+            {activeWorkOrders.map((workOrder) => {
+              const client = getClientById(workOrder.clientId);
+              return (
               <li key={workOrder.id} className="flex items-center gap-4 px-5 py-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -113,7 +115,7 @@ export default function DashboardPage() {
                     <WorkOrderStatusBadge status={workOrder.status} />
                   </div>
                   <p className="mt-0.5 truncate text-sm text-slate-500">
-                    {getClientById(workOrder.clientId)?.name} · Due{" "}
+                    {client && getClientFullName(client)} · Due{" "}
                     {formatDate(workOrder.endDate)}
                   </p>
                   <div className="mt-2 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-slate-100">
@@ -127,7 +129,8 @@ export default function DashboardPage() {
                   {formatCurrency(workOrder.budget)}
                 </p>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </Card>
 
@@ -137,20 +140,24 @@ export default function DashboardPage() {
             description="Sent, not yet approved"
           />
           <ul className="divide-y divide-slate-100">
-            {openQuotes.map((quote) => (
+            {openQuotes.map((quote) => {
+              const workOrder = getWorkOrderById(quote.workOrderId);
+              const client = workOrder ? getClientById(workOrder.clientId) : undefined;
+              return (
               <li key={quote.id} className="px-5 py-4">
                 <div className="flex items-center justify-between gap-2">
                   <p className="truncate text-sm font-medium text-slate-900">
-                    {getWorkOrderById(quote.workOrderId)?.title}
+                    {workOrder?.title}
                   </p>
                   <QuoteStatusBadge status={quote.status} />
                 </div>
                 <p className="mt-0.5 text-sm text-slate-500">
-                  {getClientById(getWorkOrderById(quote.workOrderId)?.clientId ?? "")?.name} ·
+                  {client && getClientFullName(client)} ·
                   Expires {formatDate(quote.expiryDate)}
                 </p>
               </li>
-            ))}
+              );
+            })}
             {openQuotes.length === 0 && (
               <li className="px-5 py-6 text-sm text-slate-500">
                 No estimates awaiting response.
@@ -185,7 +192,7 @@ export default function DashboardPage() {
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-900">
-                    {invoice.number} · {client?.name}
+                    {invoice.number} · {client && getClientFullName(client)}
                   </p>
                   <p className="mt-0.5 text-sm text-slate-500">
                     {workOrder?.title} · Issued {formatDate(invoice.issueDate)}

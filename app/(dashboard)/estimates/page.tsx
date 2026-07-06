@@ -5,7 +5,7 @@ import { QuoteStatusBadge } from "@/components/ui/Badge";
 import { Table, TableHead, TableBody, Th, Tr, Td } from "@/components/ui/Table";
 import { IconPlus } from "@/components/icons";
 import { getClientById, getQuoteTotal, getWorkOrderById, quotes } from "@/lib/data";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, getClientFullName } from "@/lib/utils";
 
 export default function EstimatesPage() {
   const pendingCount = quotes.filter((quote) => quote.status === "sent").length;
@@ -43,7 +43,7 @@ export default function EstimatesPage() {
                     <p className="font-medium text-slate-900">{quote.number}</p>
                     <p className="text-xs text-slate-500">{workOrder?.title}</p>
                   </Td>
-                  <Td>{client?.name}</Td>
+                  <Td>{client && getClientFullName(client)}</Td>
                   <Td>
                     <QuoteStatusBadge status={quote.status} />
                   </Td>

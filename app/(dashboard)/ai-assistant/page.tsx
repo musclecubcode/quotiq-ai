@@ -6,7 +6,7 @@ export default function AiAssistantPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="AI Assistant"
-        description="Ask about jobs, estimates, or invoices — or get a first draft on a new estimate."
+        description="Ask about work orders, estimates, or invoices — or get a first draft on a new estimate."
       />
       <AssistantChat />
     </div>

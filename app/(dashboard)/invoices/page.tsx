@@ -5,7 +5,7 @@ import { InvoiceStatusBadge } from "@/components/ui/Badge";
 import { Table, TableHead, TableBody, Th, Tr, Td } from "@/components/ui/Table";
 import { IconPlus } from "@/components/icons";
 import { getClientById, getWorkOrderById, invoices } from "@/lib/data";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, getClientFullName } from "@/lib/utils";
 
 export default function InvoicesPage() {
   const outstanding = invoices
@@ -46,7 +46,7 @@ export default function InvoicesPage() {
                     <p className="font-medium text-slate-900">{invoice.number}</p>
                     <p className="text-xs text-slate-500">{workOrder?.title}</p>
                   </Td>
-                  <Td>{client?.name}</Td>
+                  <Td>{client && getClientFullName(client)}</Td>
                   <Td>
                     <InvoiceStatusBadge status={invoice.status} />
                   </Td>

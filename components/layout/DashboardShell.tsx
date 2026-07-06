@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn, getInitials } from "@/lib/utils";
 import { navItems } from "./nav-items";
-import { IconBell, IconMenu, IconSearch, IconX } from "@/components/icons";
+import { NotificationsMenu } from "./NotificationsMenu";
+import { IconMenu, IconSearch, IconX } from "@/components/icons";
 
 const CONTRACTOR_NAME = "Ray Delgado";
 const COMPANY_NAME = "Delgado Builders";
@@ -159,19 +160,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="search"
-              placeholder="Search clients, jobs, invoices…"
+              placeholder="Search clients, work orders, quotes, invoices, VINs, addresses…"
               className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
 
-          <button
-            type="button"
-            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
-            aria-label="Notifications"
-          >
-            <IconBell className="h-5 w-5" />
-            <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-blue-600" />
-          </button>
+          <NotificationsMenu />
 
           <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white sm:flex">
             {getInitials(CONTRACTOR_NAME)}

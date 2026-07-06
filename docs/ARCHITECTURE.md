@@ -80,7 +80,7 @@ WorkOrder 1 ──< WarrantyRecord
 - `getQuotesByWorkOrder(id)`, `getInvoicesByWorkOrder(id)`
 - `getQuoteTotal(quote)` — sums line items
 - `getClientLifetimeValue(clientId)` — sums `amountPaid` across all invoices on all of a client's work orders
-- `getClientProfile(clientId)` — the single call the client detail page uses; returns the client plus every related record, joined through their work orders
+- `getClientRelatedRecords(clientId)` — everything reachable through a client's work orders (properties, vehicles, work orders, quotes, invoices, notes, warranties, documents, photos), keyed off `clientId` alone so it works for both fixture and real clients
 
 ## What's intentionally not built yet
 
@@ -89,3 +89,27 @@ were updated just enough to compile against the new shapes (e.g. the
 Jobs/Estimates/Invoices list pages now join through `WorkOrder` instead
 of reading denormalized fields) — no new screens, and no UI for
 managing Properties/Vehicles/Quotes as first-class list pages yet.
+
+## Client persistence (Sprint 3)
+
+`Client` is now the one entity with a real, working data layer instead of
+a fixture: [`lib/client-storage.ts`](../lib/client-storage.ts) persists
+clients to the browser's `localStorage` (key `quotiq.clients`), exposed
+via `useClients()` / `useClient(id)` (backed by `useSyncExternalStore`,
+not `useEffect`, so it doesn't hit React's state-in-effect footgun and
+doesn't need manual hydration bookkeeping).
+
+This is a **separate store from the demo `clients` fixture** in
+`lib/data.ts`. The Jobs, Estimates, Invoices, Dashboard, and AI Assistant
+screens still read the fixture — they haven't been migrated to real data
+yet, so a client created through the new "New Client" form won't show up
+there. The Clients list and Client Workspace pages are the only ones
+reading from the real store; both had to become Client Components
+(`app/(dashboard)/clients/page.tsx`, and `ClientWorkspace.tsx` behind the
+`[id]` route) since `localStorage` doesn't exist during server rendering.
+
+A real client's Workspace tabs (Properties, Vehicles, Jobs, Estimates,
+Invoices, Photos, Notes, Warranty, Documents) all resolve to the existing
+empty states, since `getClientRelatedRecords` simply finds no fixture
+work orders for a real client's id — correct behavior until Work Orders
+get their own real data layer.

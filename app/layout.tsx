@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: "%s · Quotiq AI",
   },
   description:
-    "AI-powered estimating, job tracking, and invoicing built for contractors.",
+    "AI-powered estimating, work order tracking, and invoicing built for contractors.",
   applicationName: "Quotiq AI",
   appleWebApp: {
     capable: true,
