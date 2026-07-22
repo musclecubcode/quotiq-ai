@@ -113,3 +113,52 @@ Invoices, Photos, Notes, Warranty, Documents) all resolve to the existing
 empty states, since `getClientRelatedRecords` simply finds no fixture
 work orders for a real client's id — correct behavior until Work Orders
 get their own real data layer.
+
+## Multi-trade Work Orders
+
+Quotiq AI serves multiple contractor trades (mobile mechanics, handymen,
+fence installers, electricians, plumbers, general contractors, and more)
+from **one shared `WorkOrder` model** — not a separate app or record type
+per trade. Two additions to `WorkOrder` in `lib/types.ts` make this work:
+
+- **`trade: TradeCategory`** — a required, closed set of trade values
+  (`mobile_mechanic`, `handyman`, `fence`, `drywall`, `painting`,
+  `electrical`, `appliance_repair`, `sprinklers_irrigation`,
+  `pressure_washing`, `carpentry`, `plumbing`, `general_contractor`,
+  `other`). This is distinct from the pre-existing `category` field:
+  `category` classifies the *kind* of work (remodel/repair/installation/
+  inspection/maintenance/other) regardless of trade, while `trade`
+  identifies *which specialty* is doing it.
+- **`tradeDetails?: TradeDetails`** — optional, trade-specific structured
+  data. `TradeDetails` is deliberately a loose `Record<string, string |
+  boolean>` rather than a hand-rolled interface (or discriminated union)
+  per trade. Which keys are meaningful for a given trade is **config, not
+  a type-level concern** — see below.
+
+### Extensibility: config-driven detail fields
+
+`TRADE_DETAIL_FIELDS` in [`lib/work-order-options.ts`](../lib/work-order-options.ts)
+is the single source of truth mapping each `TradeCategory` to the list of
+optional fields relevant to it (e.g. Mobile Mechanic gets vehicle year/
+make/model/VIN/mileage; Fence gets fence type/linear feet/gate count;
+Electrical gets panel type/amperage/permit-required). `CreateWorkOrderForm`
+reads this config to render the right optional fields the moment a trade
+is selected, and to extract them into `tradeDetails` on submit — no
+per-trade branching in the form component itself.
+
+**Adding a new trade going forward means two small, additive edits and
+nothing else:**
+
+1. Add the new value to the `TradeCategory` union in `lib/types.ts`.
+2. Add a matching entry (label + optional detail fields) to
+   `TRADE_CATEGORIES` / `TRADE_DETAIL_FIELDS` in `lib/work-order-options.ts`.
+
+The form, storage layer, and list views all pick this up automatically —
+none of them hardcode the set of trades.
+
+### What's intentionally not built yet
+
+Per this pass's brief: no AI-assisted trade detection, no trade-specific
+pricing/estimating logic, and no per-trade Work Order *types* (all trades
+share the same `WorkOrder` shape, `workorder-storage.ts` persistence, and
+`/jobs` list/detail UI).

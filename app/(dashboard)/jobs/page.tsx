@@ -10,7 +10,7 @@ import { IconPlus } from "@/components/icons";
 import { clients as fixtureClients, workOrders as fixtureWorkOrders } from "@/lib/data";
 import { useClients } from "@/lib/client-storage";
 import { useStoredWorkOrders } from "@/lib/workorder-storage";
-import { categoryLabel } from "@/lib/work-order-options";
+import { categoryLabel, tradeLabel } from "@/lib/work-order-options";
 import { formatCurrency, formatDate, getClientFullName } from "@/lib/utils";
 import type { Client } from "@/lib/types";
 
@@ -64,7 +64,8 @@ export default function JobsPage() {
                   <Td>
                     <p className="font-medium text-slate-900">{workOrder.title}</p>
                     <p className="text-xs text-slate-500">
-                      {categoryLabel(workOrder.category)} · {workOrder.serviceAddress}
+                      {tradeLabel(workOrder.trade)} · {categoryLabel(workOrder.category)} ·{" "}
+                      {workOrder.serviceAddress}
                     </p>
                   </Td>
                   <Td>{client && getClientFullName(client)}</Td>

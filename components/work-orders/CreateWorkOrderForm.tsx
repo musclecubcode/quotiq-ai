@@ -8,15 +8,28 @@ import { Card } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/Field";
 import { useClients } from "@/lib/client-storage";
 import { useStoredWorkOrders } from "@/lib/workorder-storage";
-import { WORK_ORDER_CATEGORIES, WORK_ORDER_PRIORITIES, WORK_ORDER_STATUSES } from "@/lib/work-order-options";
+import {
+  TRADE_CATEGORIES,
+  TRADE_DETAIL_FIELDS,
+  WORK_ORDER_CATEGORIES,
+  WORK_ORDER_PRIORITIES,
+  WORK_ORDER_STATUSES,
+} from "@/lib/work-order-options";
 import { getClientFullName } from "@/lib/utils";
-import type { WorkOrderCategory, WorkOrderPriority, WorkOrderStatus } from "@/lib/types";
+import type {
+  TradeCategory,
+  TradeDetails,
+  WorkOrderCategory,
+  WorkOrderPriority,
+  WorkOrderStatus,
+} from "@/lib/types";
 
 export function CreateWorkOrderForm() {
   const router = useRouter();
   const { clients } = useClients();
   const { addWorkOrder } = useStoredWorkOrders();
   const [error, setError] = useState<string | null>(null);
+  const [trade, setTrade] = useState<TradeCategory | "">("");
 
   if (clients.length === 0) {
     return (
@@ -39,6 +52,7 @@ export function CreateWorkOrderForm() {
 
     const clientId = get("clientId");
     const serviceAddress = get("serviceAddress");
+    const tradeValue = get("trade") as TradeCategory;
     const category = get("category") as WorkOrderCategory;
     const priority = get("priority") as WorkOrderPriority;
     const status = get("status") as WorkOrderStatus;
@@ -46,22 +60,38 @@ export function CreateWorkOrderForm() {
     const scheduledDate = get("scheduledDate");
     const internalNotes = get("internalNotes");
 
-    if (
-      !clientId ||
-      !serviceAddress ||
-      !category ||
-      !priority ||
-      !status ||
-      !description ||
-      !scheduledDate
-    ) {
-      setError("Please fill in all required fields.");
+    const requiredFields: { label: string; value: string }[] = [
+      { label: "Client", value: clientId },
+      { label: "Service Address", value: serviceAddress },
+      { label: "Trade", value: tradeValue },
+      { label: "Category", value: category },
+      { label: "Priority", value: priority },
+      { label: "Status", value: status },
+      { label: "Scheduled Date", value: scheduledDate },
+      { label: "Description", value: description },
+    ];
+    const missingFields = requiredFields.filter((field) => !field.value).map((field) => field.label);
+
+    if (missingFields.length > 0) {
+      setError(`Please fill in the following required field${missingFields.length > 1 ? "s" : ""}: ${missingFields.join(", ")}.`);
       return;
+    }
+
+    const tradeDetails: TradeDetails = {};
+    for (const field of TRADE_DETAIL_FIELDS[tradeValue]) {
+      if (field.type === "checkbox") {
+        tradeDetails[field.name] = data.get(`trade_${field.name}`) === "on";
+      } else {
+        const value = String(data.get(`trade_${field.name}`) ?? "").trim();
+        if (value) tradeDetails[field.name] = value;
+      }
     }
 
     addWorkOrder({
       clientId,
       serviceAddress,
+      trade: tradeValue,
+      tradeDetails: Object.keys(tradeDetails).length > 0 ? tradeDetails : undefined,
       category,
       priority,
       status,
@@ -92,6 +122,26 @@ export function CreateWorkOrderForm() {
 
         <Field label="Service Address" htmlFor="serviceAddress" className="sm:col-span-2">
           <input id="serviceAddress" name="serviceAddress" className={inputClass} required />
+        </Field>
+
+        <Field label="Trade" htmlFor="trade">
+          <select
+            id="trade"
+            name="trade"
+            defaultValue=""
+            className={inputClass}
+            required
+            onChange={(event) => setTrade(event.target.value as TradeCategory)}
+          >
+            <option value="" disabled>
+              Select a trade
+            </option>
+            {TRADE_CATEGORIES.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </Field>
 
         <Field label="Category" htmlFor="category">
@@ -136,6 +186,72 @@ export function CreateWorkOrderForm() {
             required
           />
         </Field>
+
+        {trade && TRADE_DETAIL_FIELDS[trade].length > 0 && (
+          <div className="grid grid-cols-1 gap-4 border-t border-slate-100 pt-4 sm:col-span-2 sm:grid-cols-2">
+            <p className="text-sm font-medium text-slate-700 sm:col-span-2">
+              {TRADE_CATEGORIES.find((option) => option.value === trade)?.label} details (optional)
+            </p>
+            {TRADE_DETAIL_FIELDS[trade].map((field) => {
+              const name = `trade_${field.name}`;
+              if (field.type === "checkbox") {
+                return (
+                  <label key={name} className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      name={name}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
+                    />
+                    {field.label}
+                  </label>
+                );
+              }
+              if (field.type === "select") {
+                return (
+                  <Field key={name} label={field.label} htmlFor={name}>
+                    <select id={name} name={name} defaultValue="" className={inputClass}>
+                      <option value="">Select</option>
+                      {field.options?.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                );
+              }
+              if (field.type === "textarea") {
+                return (
+                  <Field
+                    key={name}
+                    label={field.label}
+                    htmlFor={name}
+                    className="sm:col-span-2"
+                  >
+                    <textarea
+                      id={name}
+                      name={name}
+                      rows={3}
+                      className={inputClass}
+                      placeholder={field.placeholder}
+                    />
+                  </Field>
+                );
+              }
+              return (
+                <Field key={name} label={field.label} htmlFor={name}>
+                  <input
+                    id={name}
+                    name={name}
+                    type={field.type}
+                    className={inputClass}
+                    placeholder={field.placeholder}
+                  />
+                </Field>
+              );
+            })}
+          </div>
+        )}
 
         <Field label="Description" htmlFor="description" className="sm:col-span-2">
           <textarea

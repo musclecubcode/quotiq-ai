@@ -9,6 +9,8 @@
  */
 import { useSyncExternalStore } from "react";
 import type {
+  TradeCategory,
+  TradeDetails,
   WorkOrder,
   WorkOrderCategory,
   WorkOrderPriority,
@@ -21,6 +23,8 @@ const STORAGE_KEY = "quotiq.workOrders";
 export interface NewWorkOrderInput {
   clientId: string;
   serviceAddress: string;
+  trade: TradeCategory;
+  tradeDetails?: TradeDetails;
   category: WorkOrderCategory;
   priority: WorkOrderPriority;
   status: WorkOrderStatus;
@@ -78,6 +82,8 @@ export function createStoredWorkOrder(input: NewWorkOrderInput): WorkOrder {
     id: crypto.randomUUID(),
     clientId: input.clientId,
     title: `${categoryLabel(input.category)} — ${input.serviceAddress}`,
+    trade: input.trade,
+    tradeDetails: input.tradeDetails,
     category: input.category,
     priority: input.priority,
     serviceAddress: input.serviceAddress,

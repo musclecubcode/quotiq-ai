@@ -68,6 +68,38 @@ export type WorkOrderCategory =
 export type WorkOrderPriority = "low" | "medium" | "high" | "urgent";
 
 /**
+ * The contractor trade/specialty a WorkOrder falls under. Quotiq AI is a
+ * multi-trade platform — one shared WorkOrder model serves every trade
+ * rather than each trade getting its own app or record type. See
+ * TRADE_DETAIL_FIELDS in lib/work-order-options.ts, which is the single
+ * source of truth for which optional detail fields apply to each trade;
+ * adding a new trade only means adding a value here and an entry there.
+ */
+export type TradeCategory =
+  | "mobile_mechanic"
+  | "handyman"
+  | "fence"
+  | "drywall"
+  | "painting"
+  | "electrical"
+  | "appliance_repair"
+  | "sprinklers_irrigation"
+  | "pressure_washing"
+  | "carpentry"
+  | "plumbing"
+  | "general_contractor"
+  | "other";
+
+/**
+ * Trade-specific structured data for a WorkOrder, keyed by field name.
+ * Deliberately a loose record rather than a per-trade discriminated union:
+ * which keys are meaningful for a given trade is config (TRADE_DETAIL_FIELDS),
+ * not a type-level concern, so new trades don't require new TypeScript types.
+ * Values are strings from form inputs except checkbox fields, which are boolean.
+ */
+export type TradeDetails = Record<string, string | boolean>;
+
+/**
  * A unit of work for a client. May optionally reference the Property or
  * Vehicle it concerns (e.g. a remodel references a Property, a fleet
  * repair references a Vehicle); either, neither, or — in principle — both
@@ -79,6 +111,8 @@ export interface WorkOrder {
   propertyId?: string;
   vehicleId?: string;
   title: string;
+  trade: TradeCategory;
+  tradeDetails?: TradeDetails;
   category: WorkOrderCategory;
   priority: WorkOrderPriority;
   serviceAddress: string;
