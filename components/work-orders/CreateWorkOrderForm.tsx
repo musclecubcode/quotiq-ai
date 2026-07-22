@@ -87,7 +87,7 @@ export function CreateWorkOrderForm() {
       }
     }
 
-    addWorkOrder({
+    const workOrder = addWorkOrder({
       clientId,
       serviceAddress,
       trade: tradeValue,
@@ -100,7 +100,7 @@ export function CreateWorkOrderForm() {
       internalNotes: internalNotes || undefined,
     });
 
-    router.push("/jobs");
+    router.push(`/jobs/${workOrder.id}`);
   }
 
   return (

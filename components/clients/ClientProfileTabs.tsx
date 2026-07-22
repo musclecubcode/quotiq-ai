@@ -19,6 +19,7 @@ import { Badge, QuoteStatusBadge, InvoiceStatusBadge, WorkOrderStatusBadge } fro
 import { Table, TableBody, TableHead, Th, Td, Tr } from "@/components/ui/Table";
 import { getClientLifetimeValue, getQuoteTotal, getWorkOrderById } from "@/lib/data";
 import { IconBuilding, IconFileText, IconMapPin } from "@/components/icons";
+import Link from "next/link";
 
 interface ClientProfileTabsProps {
   properties: Property[];
@@ -241,7 +242,14 @@ export function ClientProfileTabs({
                 <TableBody>
                   {workOrders.map((workOrder) => (
                     <Tr key={workOrder.id}>
-                      <Td className="font-medium text-slate-900">{workOrder.title}</Td>
+                      <Td>
+                        <Link
+                          href={`/jobs/${workOrder.id}`}
+                          className="font-medium text-slate-900 hover:text-blue-700 hover:underline"
+                        >
+                          {workOrder.title}
+                        </Link>
+                      </Td>
                       <Td>
                         <WorkOrderStatusBadge status={workOrder.status} />
                       </Td>

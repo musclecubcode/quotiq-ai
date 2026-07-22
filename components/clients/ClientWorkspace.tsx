@@ -5,11 +5,13 @@ import { ClientStatusBadge } from "@/components/ui/Badge";
 import { ClientProfileTabs } from "@/components/clients/ClientProfileTabs";
 import { IconMapPin } from "@/components/icons";
 import { useClient } from "@/lib/client-storage";
+import { useStoredWorkOrders } from "@/lib/workorder-storage";
 import { getClientRelatedRecords } from "@/lib/data";
 import { getClientFullName, getInitials } from "@/lib/utils";
 
 export function ClientWorkspace({ clientId }: { clientId: string }) {
   const { client } = useClient(clientId);
+  const { workOrders } = useStoredWorkOrders();
 
   if (!client) {
     return (
@@ -28,6 +30,7 @@ export function ClientWorkspace({ clientId }: { clientId: string }) {
   }
 
   const related = getClientRelatedRecords(client.id);
+  const clientWorkOrders = workOrders.filter((workOrder) => workOrder.clientId === client.id);
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,7 +60,7 @@ export function ClientWorkspace({ clientId }: { clientId: string }) {
         </div>
       </div>
 
-      <ClientProfileTabs client={client} {...related} />
+      <ClientProfileTabs client={client} {...related} workOrders={clientWorkOrders} />
     </div>
   );
 }

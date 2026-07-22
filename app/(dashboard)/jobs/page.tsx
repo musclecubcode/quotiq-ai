@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/Card";
 import { PriorityBadge, WorkOrderStatusBadge } from "@/components/ui/Badge";
 import { Table, TableHead, TableBody, Th, Tr, Td } from "@/components/ui/Table";
 import { IconPlus } from "@/components/icons";
-import { clients as fixtureClients, workOrders as fixtureWorkOrders } from "@/lib/data";
 import { useClients } from "@/lib/client-storage";
 import { useStoredWorkOrders } from "@/lib/workorder-storage";
 import { categoryLabel, tradeLabel } from "@/lib/work-order-options";
@@ -15,14 +14,13 @@ import { formatCurrency, formatDate, getClientFullName } from "@/lib/utils";
 import type { Client } from "@/lib/types";
 
 export default function JobsPage() {
-  const { clients: realClients } = useClients();
-  const { workOrders: realWorkOrders } = useStoredWorkOrders();
+  const { clients } = useClients();
+  const { workOrders: repositoryWorkOrders } = useStoredWorkOrders();
 
   const clientsById = new Map<string, Client>();
-  for (const client of fixtureClients) clientsById.set(client.id, client);
-  for (const client of realClients) clientsById.set(client.id, client);
+  for (const client of clients) clientsById.set(client.id, client);
 
-  const workOrders = [...realWorkOrders, ...fixtureWorkOrders].sort((a, b) =>
+  const workOrders = [...repositoryWorkOrders].sort((a, b) =>
     a.startDate < b.startDate ? 1 : -1
   );
 
@@ -62,7 +60,12 @@ export default function JobsPage() {
               return (
                 <Tr key={workOrder.id}>
                   <Td>
-                    <p className="font-medium text-slate-900">{workOrder.title}</p>
+                    <Link
+                      href={`/jobs/${workOrder.id}`}
+                      className="font-medium text-slate-900 hover:text-blue-700 hover:underline"
+                    >
+                      {workOrder.title}
+                    </Link>
                     <p className="text-xs text-slate-500">
                       {tradeLabel(workOrder.trade)} · {categoryLabel(workOrder.category)} ·{" "}
                       {workOrder.serviceAddress}

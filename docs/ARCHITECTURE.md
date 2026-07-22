@@ -90,29 +90,21 @@ Jobs/Estimates/Invoices list pages now join through `WorkOrder` instead
 of reading denormalized fields) — no new screens, and no UI for
 managing Properties/Vehicles/Quotes as first-class list pages yet.
 
-## Client persistence (Sprint 3)
+## Unified client and Work Order repository
 
-`Client` is now the one entity with a real, working data layer instead of
-a fixture: [`lib/client-storage.ts`](../lib/client-storage.ts) persists
-clients to the browser's `localStorage` (key `quotiq.clients`), exposed
-via `useClients()` / `useClient(id)` (backed by `useSyncExternalStore`,
-not `useEffect`, so it doesn't hit React's state-in-effect footgun and
-doesn't need manual hydration bookkeeping).
+[`lib/workorder-repository.ts`](../lib/workorder-repository.ts) is the single
+read/write interface for clients and Work Orders. It combines read-only
+sample records with records persisted under `quotiq.clients` and
+`quotiq.workOrders`, with persisted records overriding samples by ID. This
+keeps sample data available without forcing screens to choose between two
+data sources. Editing a sample Work Order saves an override rather than
+mutating the fixture.
 
-This is a **separate store from the demo `clients` fixture** in
-`lib/data.ts`. The Jobs, Estimates, Invoices, Dashboard, and AI Assistant
-screens still read the fixture — they haven't been migrated to real data
-yet, so a client created through the new "New Client" form won't show up
-there. The Clients list and Client Workspace pages are the only ones
-reading from the real store; both had to become Client Components
-(`app/(dashboard)/clients/page.tsx`, and `ClientWorkspace.tsx` behind the
-`[id]` route) since `localStorage` doesn't exist during server rendering.
-
-A real client's Workspace tabs (Properties, Vehicles, Jobs, Estimates,
-Invoices, Photos, Notes, Warranty, Documents) all resolve to the existing
-empty states, since `getClientRelatedRecords` simply finds no fixture
-work orders for a real client's id — correct behavior until Work Orders
-get their own real data layer.
+The repository uses `useSyncExternalStore` for browser subscriptions and
+provides validated create, lookup, relationship, and update operations.
+The Work Order list, creation flow, dynamic workspace, and client workspace
+all consume this interface. Dashboard, quotes, invoices, and the demo AI
+remain fixture-backed until their own milestones.
 
 ## Multi-trade Work Orders
 
