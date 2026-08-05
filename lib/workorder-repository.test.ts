@@ -4,9 +4,11 @@ import {
   WORK_ORDER_STORAGE_KEY,
   createClient,
   createWorkOrder,
+  getAllClients,
   getWorkOrder,
   getWorkOrdersForClient,
   resetRepositoryCacheForTests,
+  setRepositoryUserScope,
   updateWorkOrder,
 } from "./workorder-repository";
 
@@ -65,5 +67,17 @@ describe("Work Order repository workflow", () => {
     expect(getWorkOrder(workOrder.id)).toEqual(edited);
     expect(edited).toMatchObject({ title: "Service Panel Replacement", status: "in_progress", budget: 3200 });
     expect(getWorkOrdersForClient(client.id)).toContainEqual(edited);
+  });
+
+  it("isolates each signed-in user's browser workspace", () => {
+    setRepositoryUserScope("user-a");
+    createClient({ firstName: "A", lastName: "User", phone: "555-0100", email: "a@example.com", address: "1 Main St", city: "Austin", state: "TX", zip: "78701" });
+    expect(getAllClients()).toHaveLength(1);
+
+    setRepositoryUserScope("user-b");
+    expect(getAllClients()).toHaveLength(0);
+
+    setRepositoryUserScope("user-a");
+    expect(getAllClients()).toHaveLength(1);
   });
 });

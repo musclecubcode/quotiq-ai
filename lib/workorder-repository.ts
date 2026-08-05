@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { clients as sampleClients, workOrders as sampleWorkOrders } from "./data";
+import { isDemoModeEnabled } from "./demo-mode";
 import type {
   Client,
   TradeCategory,
@@ -15,6 +16,9 @@ import { categoryLabel } from "./work-order-options";
 
 export const CLIENT_STORAGE_KEY = "quotiq.clients";
 export const WORK_ORDER_STORAGE_KEY = "quotiq.workOrders";
+let activeUserScope = "";
+
+const scopedKey = (key: string) => activeUserScope ? `${key}.${activeUserScope}` : key;
 
 export interface NewClientInput {
   firstName: string;
@@ -70,8 +74,10 @@ let cachedClientsRaw: string | null | undefined;
 let cachedStoredClients: Client[] = [];
 let cachedWorkOrdersRaw: string | null | undefined;
 let cachedStoredWorkOrders: WorkOrder[] = [];
-let cachedClients: Client[] = sampleClients;
-let cachedWorkOrders: WorkOrder[] = sampleWorkOrders;
+const initialClients = isDemoModeEnabled ? sampleClients : [];
+const initialWorkOrders = isDemoModeEnabled ? sampleWorkOrders : [];
+let cachedClients: Client[] = initialClients;
+let cachedWorkOrders: WorkOrder[] = initialWorkOrders;
 
 function emitChange(): void {
   for (const listener of listeners) listener();
@@ -80,7 +86,7 @@ function emitChange(): void {
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   const onStorage = (event: StorageEvent) => {
-    if (event.key === CLIENT_STORAGE_KEY || event.key === WORK_ORDER_STORAGE_KEY) {
+    if (event.key === scopedKey(CLIENT_STORAGE_KEY) || event.key === scopedKey(WORK_ORDER_STORAGE_KEY)) {
       emitChange();
     }
   };
@@ -111,21 +117,21 @@ function mergeById<T extends { id: string }>(samples: T[], stored: T[]): T[] {
 }
 
 function readStoredClients(): Client[] {
-  const raw = window.localStorage.getItem(CLIENT_STORAGE_KEY);
+  const raw = window.localStorage.getItem(scopedKey(CLIENT_STORAGE_KEY));
   if (raw !== cachedClientsRaw) {
     cachedClientsRaw = raw;
     cachedStoredClients = parseArray<Client>(raw, "client");
-    cachedClients = mergeById(sampleClients, cachedStoredClients);
+    cachedClients = mergeById(initialClients, cachedStoredClients);
   }
   return cachedStoredClients;
 }
 
 function readStoredWorkOrders(): WorkOrder[] {
-  const raw = window.localStorage.getItem(WORK_ORDER_STORAGE_KEY);
+  const raw = window.localStorage.getItem(scopedKey(WORK_ORDER_STORAGE_KEY));
   if (raw !== cachedWorkOrdersRaw) {
     cachedWorkOrdersRaw = raw;
     cachedStoredWorkOrders = parseArray<WorkOrder>(raw, "Work Order");
-    cachedWorkOrders = mergeById(sampleWorkOrders, cachedStoredWorkOrders);
+    cachedWorkOrders = mergeById(initialWorkOrders, cachedStoredWorkOrders);
   }
   return cachedStoredWorkOrders;
 }
@@ -141,16 +147,16 @@ function getWorkOrdersSnapshot(): WorkOrder[] {
 }
 
 function getServerClientsSnapshot(): Client[] {
-  return sampleClients;
+  return initialClients;
 }
 
 function getServerWorkOrdersSnapshot(): WorkOrder[] {
-  return sampleWorkOrders;
+  return initialWorkOrders;
 }
 
 function write<T>(key: string, records: T[], label: string): void {
   try {
-    window.localStorage.setItem(key, JSON.stringify(records));
+    window.localStorage.setItem(scopedKey(key), JSON.stringify(records));
   } catch {
     throw new RepositoryError(`Unable to save ${label}. Check browser storage permissions and available space.`);
   }
@@ -292,6 +298,19 @@ export function useWorkOrderRecord(id: string) {
 }
 
 export function resetRepositoryCacheForTests(): void {
+  activeUserScope = "";
   cachedClientsRaw = undefined;
   cachedWorkOrdersRaw = undefined;
+}
+
+export function setRepositoryUserScope(userId: string): void {
+  if (activeUserScope === userId) return;
+  activeUserScope = userId;
+  cachedClientsRaw = undefined;
+  cachedWorkOrdersRaw = undefined;
+  cachedStoredClients = [];
+  cachedStoredWorkOrders = [];
+  cachedClients = initialClients;
+  cachedWorkOrders = initialWorkOrders;
+  emitChange();
 }

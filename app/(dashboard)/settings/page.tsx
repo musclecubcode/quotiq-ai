@@ -1,17 +1,15 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/Field";
 import { getInitials } from "@/lib/utils";
 
-const team = [
-  { name: "Ray Delgado", role: "Owner" },
-  { name: "J. Alvarez", role: "Lead Carpenter" },
-  { name: "M. Sato", role: "Site Foreman" },
-  { name: "R. Kim", role: "Electrician" },
-  { name: "K. Diaz", role: "Finish Carpenter" },
-  { name: "T. Nguyen", role: "Flooring Specialist" },
-];
+const team: { name: string; role: string }[] = [];
 
 function Toggle({ label, description, defaultChecked = false }: {
   label: string;
@@ -38,6 +36,23 @@ function Toggle({ label, description, defaultChecked = false }: {
 }
 
 export default function SettingsPage() {
+  const { user } = useUser();
+  const router = useRouter();
+  const [saved, setSaved] = useState(false);
+
+  async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!user) return;
+    const data = new FormData(event.currentTarget);
+    const companyName = String(data.get("companyName") ?? "").trim();
+    const contractorLicense = String(data.get("contractorLicense") ?? "").trim();
+    if (!companyName) return;
+    await user.update({ unsafeMetadata: { ...user.unsafeMetadata, companyName, contractorLicense: contractorLicense || null } });
+    await user.reload();
+    setSaved(true);
+    router.refresh();
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -51,19 +66,24 @@ export default function SettingsPage() {
             title="Company Profile"
             description="This information appears on estimates and invoices"
           />
-          <form className="grid grid-cols-1 gap-4 px-5 py-5 sm:grid-cols-2">
+          <form key={user?.id} onSubmit={saveProfile} className="grid grid-cols-1 gap-4 px-5 py-5 sm:grid-cols-2">
             <Field label="Company name" htmlFor="company-name">
               <input
                 id="company-name"
+                name="companyName"
                 className={inputClass}
-                defaultValue="Delgado Builders"
+                placeholder="Your company name"
+                defaultValue={String(user?.unsafeMetadata.companyName ?? "")}
+                required
               />
             </Field>
             <Field label="License number" htmlFor="license">
               <input
                 id="license"
+                name="contractorLicense"
                 className={inputClass}
-                defaultValue="TX-GC-48213"
+                placeholder="License number (optional)"
+                defaultValue={String(user?.unsafeMetadata.contractorLicense ?? "")}
               />
             </Field>
             <Field label="Contact email" htmlFor="email">
@@ -71,7 +91,7 @@ export default function SettingsPage() {
                 id="email"
                 type="email"
                 className={inputClass}
-                defaultValue="ray@delgadobuilders.com"
+                placeholder="you@company.com"
               />
             </Field>
             <Field label="Phone" htmlFor="phone">
@@ -79,14 +99,14 @@ export default function SettingsPage() {
                 id="phone"
                 type="tel"
                 className={inputClass}
-                defaultValue="(512) 555-0102"
+                placeholder="Business phone"
               />
             </Field>
             <Field label="Business address" htmlFor="address" className="sm:col-span-2">
               <input
                 id="address"
                 className={inputClass}
-                defaultValue="1220 S Congress Ave, Austin, TX 78704"
+                placeholder="Business address"
               />
             </Field>
             <Field label="Default markup (%)" htmlFor="markup">
@@ -94,7 +114,7 @@ export default function SettingsPage() {
                 id="markup"
                 type="number"
                 className={inputClass}
-                defaultValue={18}
+                placeholder="0"
               />
             </Field>
             <Field label="Sales tax rate (%)" htmlFor="tax-rate">
@@ -102,13 +122,14 @@ export default function SettingsPage() {
                 id="tax-rate"
                 type="number"
                 className={inputClass}
-                defaultValue={8.25}
+                placeholder="0"
               />
             </Field>
             <div className="sm:col-span-2">
-              <Button type="button" className="mt-2 w-fit">
+              <Button type="submit" className="mt-2 w-fit">
                 Save changes
               </Button>
+              {saved && <span role="status" className="ml-3 text-sm text-green-700">Company profile saved.</span>}
             </div>
           </form>
         </Card>
@@ -130,6 +151,7 @@ export default function SettingsPage() {
               </li>
             ))}
           </ul>
+          {team.length === 0 && <p className="px-5 py-8 text-center text-sm text-slate-500">No team members added yet.</p>}
         </Card>
       </div>
 

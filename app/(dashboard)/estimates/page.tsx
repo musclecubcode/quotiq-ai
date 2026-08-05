@@ -6,9 +6,11 @@ import { Table, TableHead, TableBody, Th, Tr, Td } from "@/components/ui/Table";
 import { IconPlus } from "@/components/icons";
 import { getClientById, getQuoteTotal, getWorkOrderById, quotes } from "@/lib/data";
 import { formatCurrency, formatDate, getClientFullName } from "@/lib/utils";
+import { isDemoModeEnabled } from "@/lib/demo-mode";
 
 export default function EstimatesPage() {
-  const pendingCount = quotes.filter((quote) => quote.status === "sent").length;
+  const visibleQuotes = isDemoModeEnabled ? quotes : [];
+  const pendingCount = visibleQuotes.filter((quote) => quote.status === "sent").length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -34,7 +36,7 @@ export default function EstimatesPage() {
             <Th className="text-right">Total</Th>
           </TableHead>
           <TableBody>
-            {quotes.map((quote) => {
+            {visibleQuotes.map((quote) => {
               const workOrder = getWorkOrderById(quote.workOrderId);
               const client = workOrder ? getClientById(workOrder.clientId) : undefined;
               return (
@@ -55,6 +57,7 @@ export default function EstimatesPage() {
                 </Tr>
               );
             })}
+            {visibleQuotes.length === 0 && <Tr><Td className="py-12 text-center text-slate-500" colSpan={6}>No estimates yet. Estimate creation is coming during the beta.</Td></Tr>}
           </TableBody>
         </Table>
       </Card>

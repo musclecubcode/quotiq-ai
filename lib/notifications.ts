@@ -38,7 +38,7 @@ export const sampleNotifications: AppNotification[] = [
   },
 ];
 
-export const isDemoModeEnabled = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+import { isDemoModeEnabled } from "./demo-mode";
 
 export function getNotifications(): AppNotification[] {
   return isDemoModeEnabled ? sampleNotifications : [];

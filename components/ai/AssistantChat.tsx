@@ -16,7 +16,7 @@ const initialMessages: Message[] = [
     id: "welcome",
     role: "assistant",
     content:
-      "Hi Ray — I'm your estimating assistant. Ask me to draft an estimate, flag work orders falling behind, or summarize what's outstanding on invoices.",
+      "Welcome to Quotiq AI. Your estimating assistant is in beta and will become more useful as you add clients and work orders.",
   },
 ];
 

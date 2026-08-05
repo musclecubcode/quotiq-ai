@@ -7,9 +7,7 @@ import { cn, getInitials } from "@/lib/utils";
 import { navItems } from "./nav-items";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { IconMenu, IconSearch, IconX } from "@/components/icons";
-
-const CONTRACTOR_NAME = "Ray Delgado";
-const COMPANY_NAME = "Delgado Builders";
+import { UserButton } from "@clerk/nextjs";
 
 function Brand() {
   return (
@@ -55,23 +53,23 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function UserSummary() {
+function UserSummary({ userName, companyName }: { userName: string; companyName: string }) {
   return (
     <div className="flex items-center gap-3 border-t border-slate-100 px-5 py-4">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
-        {getInitials(CONTRACTOR_NAME)}
+        {getInitials(userName)}
       </div>
       <div className="min-w-0">
         <p className="truncate text-sm font-medium text-slate-900">
-          {CONTRACTOR_NAME}
+          {userName}
         </p>
-        <p className="truncate text-xs text-slate-500">{COMPANY_NAME}</p>
+        <p className="truncate text-xs text-slate-500">{companyName}</p>
       </div>
     </div>
   );
 }
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+export function DashboardShell({ children, userName, companyName }: { children: React.ReactNode; userName: string; companyName: string }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
@@ -98,7 +96,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
         <Brand />
         <NavList />
-        <UserSummary />
+        <UserSummary userName={userName} companyName={companyName} />
       </aside>
 
       {/* Mobile drawer */}
@@ -134,7 +132,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
           <NavList onNavigate={() => setMobileOpen(false)} />
-          <UserSummary />
+          <UserSummary userName={userName} companyName={companyName} />
         </aside>
       </div>
 
@@ -167,9 +165,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
           <NotificationsMenu />
 
-          <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white sm:flex">
-            {getInitials(CONTRACTOR_NAME)}
-          </div>
+          <UserButton />
         </header>
 
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>

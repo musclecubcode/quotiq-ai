@@ -98,6 +98,7 @@ export default function JobsPage() {
                 </Tr>
               );
             })}
+            {workOrders.length === 0 && <Tr><Td className="py-12 text-center text-slate-500" colSpan={7}>No Work Orders yet. Add a client, then create your first Work Order.</Td></Tr>}
           </TableBody>
         </Table>
       </Card>

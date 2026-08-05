@@ -51,12 +51,10 @@ export function Tr({
 export function Td({
   children,
   className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+  ...props
+}: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <td className={cn("px-5 py-4 align-middle text-slate-700", className)}>
+    <td className={cn("px-5 py-4 align-middle text-slate-700", className)} {...props}>
       {children}
     </td>
   );

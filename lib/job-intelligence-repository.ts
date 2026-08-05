@@ -5,6 +5,8 @@ import type { MeasurementType, WorkOrderAttachment, WorkOrderMeasurement, WorkOr
 import { FileStorageError, indexedDbFileStorage } from "./indexeddb-file-storage";
 
 export const JOB_INTELLIGENCE_KEY = "quotiq.jobIntelligence";
+let activeUserScope = "";
+const storageKey = () => activeUserScope ? `${JOB_INTELLIGENCE_KEY}.${activeUserScope}` : JOB_INTELLIGENCE_KEY;
 const CURRENT_VERSION = 1;
 
 interface Store { version: number; measurements: WorkOrderMeasurement[]; notes: WorkOrderNote[]; attachments: WorkOrderAttachment[] }
@@ -29,7 +31,7 @@ function migrate(value: unknown): Store {
 }
 
 function snapshot(): Store {
-  const raw = localStorage.getItem(JOB_INTELLIGENCE_KEY);
+  const raw = localStorage.getItem(storageKey());
   if (raw !== cachedRaw) {
     try { cached = raw ? migrate(JSON.parse(raw)) : EMPTY; cachedRaw = raw; }
     catch { throw new JobIntelligenceError("Saved job-site data could not be read."); }
@@ -39,13 +41,13 @@ function snapshot(): Store {
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  const storage = (event: StorageEvent) => { if (event.key === JOB_INTELLIGENCE_KEY) listener(); };
+  const storage = (event: StorageEvent) => { if (event.key === storageKey()) listener(); };
   addEventListener("storage", storage);
   return () => { listeners.delete(listener); removeEventListener("storage", storage); };
 }
 
 function write(next: Store) {
-  try { localStorage.setItem(JOB_INTELLIGENCE_KEY, JSON.stringify(next)); }
+  try { localStorage.setItem(storageKey(), JSON.stringify(next)); }
   catch { throw new JobIntelligenceError("Job-site metadata could not be saved. Browser storage may be full."); }
   cachedRaw = undefined;
   snapshot();
@@ -101,4 +103,5 @@ export function useJobIntelligence(workOrderId: string) {
   };
 }
 export function getJobIntelligence(workOrderId: string) { const store = snapshot(); return { measurements: store.measurements.filter((item) => item.workOrderId === workOrderId), notes: store.notes.filter((item) => item.workOrderId === workOrderId), attachments: store.attachments.filter((item) => item.workOrderId === workOrderId) }; }
-export function resetJobIntelligenceCacheForTests() { cachedRaw = undefined; cached = EMPTY; }
+export function resetJobIntelligenceCacheForTests() { activeUserScope = ""; cachedRaw = undefined; cached = EMPTY; }
+export function setJobIntelligenceUserScope(userId: string) { if (activeUserScope === userId) return; activeUserScope = userId; cachedRaw = undefined; cached = EMPTY; }

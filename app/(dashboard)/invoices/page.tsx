@@ -6,9 +6,11 @@ import { Table, TableHead, TableBody, Th, Tr, Td } from "@/components/ui/Table";
 import { IconPlus } from "@/components/icons";
 import { getClientById, getWorkOrderById, invoices } from "@/lib/data";
 import { formatCurrency, formatDate, getClientFullName } from "@/lib/utils";
+import { isDemoModeEnabled } from "@/lib/demo-mode";
 
 export default function InvoicesPage() {
-  const outstanding = invoices
+  const visibleInvoices = isDemoModeEnabled ? invoices : [];
+  const outstanding = visibleInvoices
     .filter((invoice) => invoice.status === "sent" || invoice.status === "overdue")
     .reduce((sum, invoice) => sum + (invoice.amount - invoice.amountPaid), 0);
 
@@ -37,7 +39,7 @@ export default function InvoicesPage() {
             <Th className="text-right">Balance</Th>
           </TableHead>
           <TableBody>
-            {invoices.map((invoice) => {
+            {visibleInvoices.map((invoice) => {
               const workOrder = getWorkOrderById(invoice.workOrderId);
               const client = workOrder ? getClientById(workOrder.clientId) : undefined;
               return (
@@ -63,6 +65,7 @@ export default function InvoicesPage() {
                 </Tr>
               );
             })}
+            {visibleInvoices.length === 0 && <Tr><Td className="py-12 text-center text-slate-500" colSpan={7}>No invoices yet. Invoicing is coming during the beta.</Td></Tr>}
           </TableBody>
         </Table>
       </Card>

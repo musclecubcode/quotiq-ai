@@ -7,6 +7,7 @@ import {
   workOrders,
 } from "./data";
 import { formatCurrency, formatDate, getClientFullName } from "./utils";
+import { isDemoModeEnabled } from "./demo-mode";
 
 export const suggestedPrompts = [
   "Which invoices are overdue?",
@@ -21,6 +22,9 @@ export const suggestedPrompts = [
  * so the assistant stays consistent with what a contractor sees elsewhere.
  */
 export function generateAssistantReply(input: string): string {
+  if (!isDemoModeEnabled) {
+    return "The AI assistant is still in preview and is not connected to your workspace data yet. You can start by adding a client and creating a Work Order.";
+  }
   const text = input.toLowerCase();
 
   if (text.includes("overdue")) {
