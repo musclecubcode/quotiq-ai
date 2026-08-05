@@ -29,7 +29,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
     <nav className="flex flex-1 flex-col gap-1 px-3">
       {navItems.map(({ label, href, icon: Icon }) => {
         const isActive =
-          href === "/" ? pathname === "/" : pathname.startsWith(href);
+          href === "/dashboard" ? pathname === href : pathname.startsWith(href);
         return (
           <Link
             key={href}
@@ -87,7 +87,7 @@ export function DashboardShell({ children, userName, companyName }: { children: 
   }, [mobileOpen]);
 
   const activeItem = navItems.find((item) =>
-    item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
+    item.href === "/dashboard" ? pathname === item.href : pathname.startsWith(item.href)
   );
 
   return (

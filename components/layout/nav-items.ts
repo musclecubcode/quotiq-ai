@@ -9,7 +9,7 @@ import {
 } from "@/components/icons";
 
 export const navItems = [
-  { label: "Dashboard", href: "/", icon: IconDashboard },
+  { label: "Dashboard", href: "/dashboard", icon: IconDashboard },
   { label: "Clients", href: "/clients", icon: IconUsers },
   { label: "Work Orders", href: "/jobs", icon: IconBriefcase },
   { label: "Estimates", href: "/estimates", icon: IconFileText },

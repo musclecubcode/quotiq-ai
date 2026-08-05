@@ -24,7 +24,7 @@ export default function OnboardingPage() {
     try {
       await user.update({ unsafeMetadata: { ...user.unsafeMetadata, companyName, contractorLicense: contractorLicense || null } });
       await user.reload();
-      router.replace("/");
+      router.replace("/dashboard");
       router.refresh();
     } catch { setError("Your company profile could not be saved. Please try again."); }
     finally { setSaving(false); }
