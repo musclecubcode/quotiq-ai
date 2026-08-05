@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { WorkOrderPhotos } from "./WorkOrderPhotos";
+import { WorkOrderMeasurements } from "./WorkOrderMeasurements";
+import { WorkOrderNotes } from "./WorkOrderNotes";
+import { WorkOrderDocuments } from "./WorkOrderDocuments";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/Field";
@@ -24,6 +28,9 @@ import type {
   WorkOrderPriority,
   WorkOrderStatus,
 } from "@/lib/types";
+import { useJobIntelligence } from "@/lib/job-intelligence-repository";
+
+const WORKSPACE_TABS = ["overview", "photos", "measurements", "notes", "documents"] as const;
 
 export function WorkOrderWorkspace({ workOrderId }: { workOrderId: string }) {
   const { workOrder, updateWorkOrder } = useWorkOrderRecord(workOrderId);
@@ -31,6 +38,8 @@ export function WorkOrderWorkspace({ workOrderId }: { workOrderId: string }) {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState<(typeof WORKSPACE_TABS)[number]>("overview");
+  const intelligence = useJobIntelligence(workOrderId);
 
   if (!workOrder) {
     return (
@@ -158,7 +167,10 @@ export function WorkOrderWorkspace({ workOrderId }: { workOrderId: string }) {
         <Button type="button" onClick={() => { setEditing(true); setSaved(false); }}>Edit Work Order</Button>
       </div>
       {saved && <p role="status" className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">Work Order saved.</p>}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="-mx-1 flex gap-1 overflow-x-auto border-b border-slate-200 px-1" role="tablist" aria-label="Work Order sections">
+        {WORKSPACE_TABS.map((tab) => <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} onClick={() => setActiveTab(tab)} className={`shrink-0 border-b-2 px-3 py-3 text-sm font-medium capitalize ${activeTab === tab ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500"}`}>{tab}</button>)}
+      </div>
+      {activeTab === "overview" && <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader title="Scope" description={workOrder.serviceAddress} />
           <div className="px-5 pb-5">
@@ -186,7 +198,11 @@ export function WorkOrderWorkspace({ workOrderId }: { workOrderId: string }) {
           <h2 className="text-sm font-semibold text-slate-900">Notes</h2>
           <p className="mt-3 whitespace-pre-line text-sm text-slate-700">{workOrder.internalNotes || "No internal notes yet."}</p>
         </Card>
-      </div>
+      </div>}
+      {activeTab === "photos" && <WorkOrderPhotos workOrderId={workOrderId} attachments={intelligence.attachments.filter((item) => item.kind === "photo")} />}
+      {activeTab === "measurements" && <WorkOrderMeasurements workOrderId={workOrderId} measurements={intelligence.measurements} />}
+      {activeTab === "notes" && <WorkOrderNotes workOrderId={workOrderId} notes={intelligence.notes} />}
+      {activeTab === "documents" && <WorkOrderDocuments workOrderId={workOrderId} attachments={intelligence.attachments.filter((item) => item.kind === "document")} />}
     </div>
   );
 }

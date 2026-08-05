@@ -57,4 +57,9 @@ describe("WorkOrderWorkspace", () => {
     expect(screen.getByRole("heading", { name: "Exterior Trim Painting" })).toBeInTheDocument();
     expect(getWorkOrder(workOrder.id)).toMatchObject({ status: "in_progress", budget: 1800 });
   });
+
+  it("shows a clear state for a missing Work Order", () => {
+    render(<WorkOrderWorkspace workOrderId="missing-work-order" />);
+    expect(screen.getByRole("heading", { name: "Work Order not found" })).toBeInTheDocument();
+  });
 });

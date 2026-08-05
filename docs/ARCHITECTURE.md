@@ -106,6 +106,21 @@ The Work Order list, creation flow, dynamic workspace, and client workspace
 all consume this interface. Dashboard, quotes, invoices, and the demo AI
 remain fixture-backed until their own milestones.
 
+## Work Order Job Intelligence
+
+The Work Order workspace includes Overview, Photos, Measurements, Notes,
+and Documents. Structured job-site records and attachment metadata live in
+the versioned `quotiq.jobIntelligence` localStorage record through
+`lib/job-intelligence-repository.ts`. Every record carries a `workOrderId`.
+
+Photo and document bytes are stored as `Blob` values in the versioned
+`quotiq-job-files` IndexedDB database through `lib/indexeddb-file-storage.ts`;
+binary data is never base64-encoded into localStorage. Metadata is written
+only after its file succeeds, and deletion removes both the IndexedDB value
+and metadata. Storage and quota failures are normalized into visible UI
+messages. No AI analysis or automatic measurement claims are part of this
+milestone.
+
 ## Multi-trade Work Orders
 
 Quotiq AI serves multiple contractor trades (mobile mechanics, handymen,

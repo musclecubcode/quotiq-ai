@@ -126,6 +126,46 @@ export interface WorkOrder {
   crew: string[];
 }
 
+export type MeasurementType =
+  | "linear_feet" | "width" | "height" | "area" | "perimeter" | "count" | "custom";
+
+export interface WorkOrderMeasurement {
+  id: string;
+  workOrderId: string;
+  type: MeasurementType;
+  label: string;
+  value?: number;
+  unit: string;
+  width?: number;
+  height?: number;
+  quantity: number;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface WorkOrderNote {
+  id: string;
+  workOrderId: string;
+  body: string;
+  visibility: "internal" | "client";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type WorkOrderAttachmentKind = "photo" | "document";
+
+export interface WorkOrderAttachment {
+  id: string;
+  workOrderId: string;
+  kind: WorkOrderAttachmentKind;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  caption?: string;
+  description?: string;
+  uploadedAt: string;
+}
+
 export type QuoteStatus = "draft" | "sent" | "approved" | "declined";
 
 export interface QuoteLineItem {
