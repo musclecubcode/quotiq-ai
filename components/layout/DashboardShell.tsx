@@ -91,9 +91,9 @@ export function DashboardShell({ children, userName, companyName }: { children: 
   );
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="dashboard-theme min-h-screen bg-slate-950 text-slate-100">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-slate-800 bg-slate-900 lg:flex">
         <Brand />
         <NavList />
         <UserSummary userName={userName} companyName={companyName} />
@@ -116,7 +116,7 @@ export function DashboardShell({ children, userName, companyName }: { children: 
         />
         <aside
           className={cn(
-            "absolute inset-y-0 left-0 flex w-72 max-w-[80vw] flex-col bg-white shadow-xl transition-transform duration-200",
+            "absolute inset-y-0 left-0 flex w-72 max-w-[80vw] flex-col bg-slate-900 shadow-xl transition-transform duration-200",
             mobileOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
@@ -138,7 +138,7 @@ export function DashboardShell({ children, userName, companyName }: { children: 
 
       {/* Main column */}
       <div className="flex min-h-screen flex-col lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-slate-200 bg-white/80 px-4 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-slate-800 bg-slate-900/90 px-4 backdrop-blur sm:px-6">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}

@@ -40,9 +40,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up" afterSignOutUrl="/">
+    <ClerkProvider
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      afterSignOutUrl="/"
+      appearance={{
+        variables: {
+          colorBackground: "#111c31",
+          colorForeground: "#f1f5f9",
+          colorMutedForeground: "#aebdd0",
+          colorNeutral: "#f1f5f9",
+          colorInput: "#0f172a",
+          colorInputForeground: "#f1f5f9",
+          colorPrimary: "#3b82f6",
+          colorDanger: "#f87171",
+          borderRadius: "0.75rem",
+        },
+        elements: {
+          cardBox: "shadow-2xl shadow-black/30",
+          card: "border border-slate-700",
+          footer: "bg-transparent",
+        },
+      }}
+    >
       <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-        <body className="min-h-full bg-slate-50 text-slate-900">{children}</body>
+        <body className="min-h-full bg-slate-950 text-slate-100">{children}</body>
       </html>
     </ClerkProvider>
   );

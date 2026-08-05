@@ -19,3 +19,97 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* The signed-in workspace mirrors the softer dark palette of the beta welcome screen. */
+.dashboard-theme {
+  color-scheme: dark;
+  background:
+    radial-gradient(circle at top right, rgb(37 99 235 / 14%), transparent 34rem),
+    #020617;
+}
+
+.dashboard-theme .bg-white {
+  background-color: #111c31;
+}
+
+.dashboard-theme .bg-white\/80,
+.dashboard-theme .bg-white\/90 {
+  background-color: rgb(15 23 42 / 90%);
+}
+
+.dashboard-theme .bg-slate-50 {
+  background-color: #0f172a;
+}
+
+.dashboard-theme .bg-slate-100 {
+  background-color: #1e293b;
+}
+
+.dashboard-theme .bg-slate-200 {
+  background-color: #334155;
+}
+
+.dashboard-theme .text-slate-900,
+.dashboard-theme .text-slate-800,
+.dashboard-theme .text-slate-700 {
+  color: #f1f5f9;
+}
+
+.dashboard-theme .text-slate-600,
+.dashboard-theme .text-slate-500 {
+  color: #aebdd0;
+}
+
+.dashboard-theme .text-slate-400 {
+  color: #91a3ba;
+}
+
+.dashboard-theme .border-slate-100,
+.dashboard-theme .border-slate-200,
+.dashboard-theme .border-slate-300 {
+  border-color: #2b3b55;
+}
+
+.dashboard-theme .ring-slate-300 {
+  --tw-ring-color: #475569;
+}
+
+.dashboard-theme .divide-slate-100 > :not(:last-child),
+.dashboard-theme .divide-slate-200 > :not(:last-child) {
+  border-color: #263750;
+}
+
+.dashboard-theme .bg-blue-50 {
+  background-color: rgb(37 99 235 / 18%);
+}
+
+.dashboard-theme .bg-emerald-50 {
+  background-color: rgb(16 185 129 / 16%);
+}
+
+.dashboard-theme .bg-amber-50 {
+  background-color: rgb(245 158 11 / 16%);
+}
+
+.dashboard-theme .bg-violet-50 {
+  background-color: rgb(139 92 246 / 16%);
+}
+
+.dashboard-theme input,
+.dashboard-theme textarea,
+.dashboard-theme select {
+  color-scheme: dark;
+}
+
+.dashboard-theme .placeholder\:text-slate-400::placeholder {
+  color: #718198;
+}
+
+.dashboard-theme .hover\:bg-slate-50:hover,
+.dashboard-theme .hover\:bg-slate-100:hover {
+  background-color: #22304a;
+}
+
+.dashboard-theme .hover\:text-slate-900:hover {
+  color: #ffffff;
+}
