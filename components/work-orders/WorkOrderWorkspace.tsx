@@ -6,31 +6,20 @@ import { WorkOrderPhotos } from "./WorkOrderPhotos";
 import { WorkOrderMeasurements } from "./WorkOrderMeasurements";
 import { WorkOrderNotes } from "./WorkOrderNotes";
 import { WorkOrderDocuments } from "./WorkOrderDocuments";
+import { WorkOrderMarketPricing } from "./WorkOrderMarketPricing";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/Field";
 import { PriorityBadge, WorkOrderStatusBadge } from "@/components/ui/Badge";
 import { useClient } from "@/lib/client-storage";
 import { useWorkOrderRecord } from "@/lib/workorder-storage";
-import {
-  TRADE_CATEGORIES,
-  WORK_ORDER_CATEGORIES,
-  WORK_ORDER_PRIORITIES,
-  WORK_ORDER_STATUSES,
-  categoryLabel,
-  tradeLabel,
-} from "@/lib/work-order-options";
+import { TRADE_CATEGORIES, WORK_ORDER_CATEGORIES, WORK_ORDER_PRIORITIES, WORK_ORDER_STATUSES, categoryLabel, tradeLabel } from "@/lib/work-order-options";
 import { RepositoryError } from "@/lib/workorder-repository";
 import { formatCurrency, formatDate, getClientFullName } from "@/lib/utils";
-import type {
-  TradeCategory,
-  WorkOrderCategory,
-  WorkOrderPriority,
-  WorkOrderStatus,
-} from "@/lib/types";
+import type { TradeCategory, WorkOrderCategory, WorkOrderPriority, WorkOrderStatus } from "@/lib/types";
 import { useJobIntelligence } from "@/lib/job-intelligence-repository";
 
-const WORKSPACE_TABS = ["overview", "photos", "measurements", "notes", "documents"] as const;
+const WORKSPACE_TABS = ["overview", "photos", "measurements", "market pricing", "notes", "documents"] as const;
 
 export function WorkOrderWorkspace({ workOrderId }: { workOrderId: string }) {
   const { workOrder, updateWorkOrder } = useWorkOrderRecord(workOrderId);
@@ -41,168 +30,18 @@ export function WorkOrderWorkspace({ workOrderId }: { workOrderId: string }) {
   const [activeTab, setActiveTab] = useState<(typeof WORKSPACE_TABS)[number]>("overview");
   const intelligence = useJobIntelligence(workOrderId);
 
-  if (!workOrder) {
-    return (
-      <div className="flex flex-col items-start gap-3">
-        <Link href="/jobs" className="text-sm font-medium text-slate-500 hover:text-slate-800">
-          ← Back to Work Orders
-        </Link>
-        <Card className="w-full p-6">
-          <h1 className="text-lg font-semibold text-slate-900">Work Order not found</h1>
-          <p className="mt-2 text-sm text-slate-600">
-            This Work Order does not exist or is no longer available in this browser.
-          </p>
-        </Card>
-      </div>
-    );
-  }
+  if (!workOrder) return <div className="flex flex-col items-start gap-3"><Link href="/jobs" className="text-sm font-medium text-slate-500 hover:text-slate-800">← Back to Work Orders</Link><Card className="w-full p-6"><h1 className="text-lg font-semibold text-slate-900">Work Order not found</h1><p className="mt-2 text-sm text-slate-600">This Work Order does not exist or is no longer available in this browser.</p></Card></div>;
 
   function handleSave(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    setSaved(false);
-    const data = new FormData(event.currentTarget);
-    const get = (key: string) => String(data.get(key) ?? "").trim();
+    event.preventDefault(); setError(null); setSaved(false);
+    const data = new FormData(event.currentTarget); const get = (key: string) => String(data.get(key) ?? "").trim();
     try {
-      updateWorkOrder(workOrderId, {
-        title: get("title"),
-        trade: get("trade") as TradeCategory,
-        category: get("category") as WorkOrderCategory,
-        priority: get("priority") as WorkOrderPriority,
-        serviceAddress: get("serviceAddress"),
-        description: get("description"),
-        internalNotes: get("internalNotes") || undefined,
-        status: get("status") as WorkOrderStatus,
-        startDate: get("startDate"),
-        endDate: get("endDate"),
-        budget: Number(get("budget")),
-        progress: Number(get("progress")),
-      });
-      setEditing(false);
-      setSaved(true);
-    } catch (caught) {
-      setError(caught instanceof RepositoryError ? caught.message : "Unable to save this Work Order.");
-    }
+      updateWorkOrder(workOrderId, { title: get("title"), trade: get("trade") as TradeCategory, category: get("category") as WorkOrderCategory, priority: get("priority") as WorkOrderPriority, serviceAddress: get("serviceAddress"), description: get("description"), internalNotes: get("internalNotes") || undefined, status: get("status") as WorkOrderStatus, startDate: get("startDate"), endDate: get("endDate"), budget: Number(get("budget")), progress: Number(get("progress")) });
+      setEditing(false); setSaved(true);
+    } catch (caught) { setError(caught instanceof RepositoryError ? caught.message : "Unable to save this Work Order."); }
   }
 
-  if (editing) {
-    return (
-      <div className="flex flex-col gap-6">
-        <Link href="/jobs" className="text-sm font-medium text-slate-500 hover:text-slate-800">
-          ← Back to Work Orders
-        </Link>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Edit Work Order</h1>
-          <p className="mt-1 text-sm text-slate-500">Update scope, schedule, budget, or lifecycle status.</p>
-        </div>
-        <Card className="p-5 sm:p-6">
-          <form onSubmit={handleSave} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Title" htmlFor="title" className="sm:col-span-2">
-              <input id="title" name="title" defaultValue={workOrder.title} className={inputClass} required />
-            </Field>
-            <Field label="Trade" htmlFor="trade">
-              <select id="trade" name="trade" defaultValue={workOrder.trade} className={inputClass}>
-                {TRADE_CATEGORIES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </Field>
-            <Field label="Category" htmlFor="category">
-              <select id="category" name="category" defaultValue={workOrder.category} className={inputClass}>
-                {WORK_ORDER_CATEGORIES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </Field>
-            <Field label="Priority" htmlFor="priority">
-              <select id="priority" name="priority" defaultValue={workOrder.priority} className={inputClass}>
-                {WORK_ORDER_PRIORITIES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </Field>
-            <Field label="Status" htmlFor="status">
-              <select id="status" name="status" defaultValue={workOrder.status} className={inputClass}>
-                {WORK_ORDER_STATUSES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </Field>
-            <Field label="Start Date" htmlFor="startDate">
-              <input id="startDate" name="startDate" type="date" defaultValue={workOrder.startDate} className={inputClass} required />
-            </Field>
-            <Field label="End Date" htmlFor="endDate">
-              <input id="endDate" name="endDate" type="date" defaultValue={workOrder.endDate} className={inputClass} required />
-            </Field>
-            <Field label="Budget" htmlFor="budget">
-              <input id="budget" name="budget" type="number" min="0" step="0.01" defaultValue={workOrder.budget} className={inputClass} required />
-            </Field>
-            <Field label="Progress (%)" htmlFor="progress">
-              <input id="progress" name="progress" type="number" min="0" max="100" defaultValue={workOrder.progress} className={inputClass} required />
-            </Field>
-            <Field label="Service Address" htmlFor="serviceAddress" className="sm:col-span-2">
-              <input id="serviceAddress" name="serviceAddress" defaultValue={workOrder.serviceAddress} className={inputClass} required />
-            </Field>
-            <Field label="Scope" htmlFor="description" className="sm:col-span-2">
-              <textarea id="description" name="description" rows={5} defaultValue={workOrder.description} className={inputClass} required />
-            </Field>
-            <Field label="Internal Notes" htmlFor="internalNotes" className="sm:col-span-2">
-              <textarea id="internalNotes" name="internalNotes" rows={4} defaultValue={workOrder.internalNotes} className={inputClass} />
-            </Field>
-            {error && <p role="alert" className="text-sm text-red-600 sm:col-span-2">{error}</p>}
-            <div className="flex gap-3 sm:col-span-2">
-              <Button type="submit">Save Work Order</Button>
-              <Button type="button" variant="secondary" onClick={() => { setEditing(false); setError(null); }}>Cancel</Button>
-            </div>
-          </form>
-        </Card>
-      </div>
-    );
-  }
+  if (editing) return <div className="flex flex-col gap-6"><Link href="/jobs" className="text-sm font-medium text-slate-500 hover:text-slate-800">← Back to Work Orders</Link><div><h1 className="text-2xl font-semibold tracking-tight text-slate-900">Edit Work Order</h1><p className="mt-1 text-sm text-slate-500">Update scope, schedule, budget, or lifecycle status.</p></div><Card className="p-5 sm:p-6"><form onSubmit={handleSave} className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Title" htmlFor="title" className="sm:col-span-2"><input id="title" name="title" defaultValue={workOrder.title} className={inputClass} required /></Field><Field label="Trade" htmlFor="trade"><select id="trade" name="trade" defaultValue={workOrder.trade} className={inputClass}>{TRADE_CATEGORIES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></Field><Field label="Category" htmlFor="category"><select id="category" name="category" defaultValue={workOrder.category} className={inputClass}>{WORK_ORDER_CATEGORIES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></Field><Field label="Priority" htmlFor="priority"><select id="priority" name="priority" defaultValue={workOrder.priority} className={inputClass}>{WORK_ORDER_PRIORITIES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></Field><Field label="Status" htmlFor="status"><select id="status" name="status" defaultValue={workOrder.status} className={inputClass}>{WORK_ORDER_STATUSES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></Field><Field label="Start Date" htmlFor="startDate"><input id="startDate" name="startDate" type="date" defaultValue={workOrder.startDate} className={inputClass} required /></Field><Field label="End Date" htmlFor="endDate"><input id="endDate" name="endDate" type="date" defaultValue={workOrder.endDate} className={inputClass} required /></Field><Field label="Budget" htmlFor="budget"><input id="budget" name="budget" type="number" min="0" step="0.01" defaultValue={workOrder.budget} className={inputClass} required /></Field><Field label="Progress (%)" htmlFor="progress"><input id="progress" name="progress" type="number" min="0" max="100" defaultValue={workOrder.progress} className={inputClass} required /></Field><Field label="Service Address" htmlFor="serviceAddress" className="sm:col-span-2"><input id="serviceAddress" name="serviceAddress" defaultValue={workOrder.serviceAddress} className={inputClass} required /></Field><Field label="Scope" htmlFor="description" className="sm:col-span-2"><textarea id="description" name="description" rows={5} defaultValue={workOrder.description} className={inputClass} required /></Field><Field label="Internal Notes" htmlFor="internalNotes" className="sm:col-span-2"><textarea id="internalNotes" name="internalNotes" rows={4} defaultValue={workOrder.internalNotes} className={inputClass} /></Field>{error && <p role="alert" className="text-sm text-red-600 sm:col-span-2">{error}</p>}<div className="flex gap-3 sm:col-span-2"><Button type="submit">Save Work Order</Button><Button type="button" variant="secondary" onClick={() => { setEditing(false); setError(null); }}>Cancel</Button></div></form></Card></div>;
 
-  return (
-    <div className="flex flex-col gap-6">
-      <Link href="/jobs" className="text-sm font-medium text-slate-500 hover:text-slate-800">← Back to Work Orders</Link>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{workOrder.title}</h1>
-            <WorkOrderStatusBadge status={workOrder.status} />
-            <PriorityBadge priority={workOrder.priority} />
-          </div>
-          <p className="mt-1 text-sm text-slate-500">{tradeLabel(workOrder.trade)} · {categoryLabel(workOrder.category)}</p>
-        </div>
-        <Button type="button" onClick={() => { setEditing(true); setSaved(false); }}>Edit Work Order</Button>
-      </div>
-      {saved && <p role="status" className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">Work Order saved.</p>}
-      <div className="-mx-1 flex gap-1 overflow-x-auto border-b border-slate-200 px-1" role="tablist" aria-label="Work Order sections">
-        {WORKSPACE_TABS.map((tab) => <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} onClick={() => setActiveTab(tab)} className={`shrink-0 border-b-2 px-3 py-3 text-sm font-medium capitalize ${activeTab === tab ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500"}`}>{tab}</button>)}
-      </div>
-      {activeTab === "overview" && <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader title="Scope" description={workOrder.serviceAddress} />
-          <div className="px-5 pb-5">
-            <p className="whitespace-pre-line text-sm text-slate-700">{workOrder.description}</p>
-          </div>
-        </Card>
-        <Card className="p-5">
-          <h2 className="text-sm font-semibold text-slate-900">Client</h2>
-          {client ? (
-            <Link href={`/clients/${client.id}`} className="mt-3 block text-sm font-medium text-blue-700 hover:underline">
-              {getClientFullName(client)}
-            </Link>
-          ) : <p className="mt-3 text-sm text-red-600">The assigned client could not be found.</p>}
-        </Card>
-        <Card className="p-5">
-          <h2 className="text-sm font-semibold text-slate-900">Schedule</h2>
-          <p className="mt-3 text-sm text-slate-700">{formatDate(workOrder.startDate)} – {formatDate(workOrder.endDate)}</p>
-        </Card>
-        <Card className="p-5">
-          <h2 className="text-sm font-semibold text-slate-900">Budget & Progress</h2>
-          <p className="mt-3 text-lg font-semibold text-slate-900">{formatCurrency(workOrder.budget)}</p>
-          <p className="mt-1 text-sm text-slate-500">{workOrder.progress}% complete</p>
-        </Card>
-        <Card className="p-5">
-          <h2 className="text-sm font-semibold text-slate-900">Notes</h2>
-          <p className="mt-3 whitespace-pre-line text-sm text-slate-700">{workOrder.internalNotes || "No internal notes yet."}</p>
-        </Card>
-      </div>}
-      {activeTab === "photos" && <WorkOrderPhotos workOrderId={workOrderId} attachments={intelligence.attachments.filter((item) => item.kind === "photo")} />}
-      {activeTab === "measurements" && <WorkOrderMeasurements workOrderId={workOrderId} measurements={intelligence.measurements} />}
-      {activeTab === "notes" && <WorkOrderNotes workOrderId={workOrderId} notes={intelligence.notes} />}
-      {activeTab === "documents" && <WorkOrderDocuments workOrderId={workOrderId} attachments={intelligence.attachments.filter((item) => item.kind === "document")} />}
-    </div>
-  );
+  return <div className="flex flex-col gap-6"><Link href="/jobs" className="text-sm font-medium text-slate-500 hover:text-slate-800">← Back to Work Orders</Link><div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-2"><h1 className="text-2xl font-semibold tracking-tight text-slate-900">{workOrder.title}</h1><WorkOrderStatusBadge status={workOrder.status} /><PriorityBadge priority={workOrder.priority} /></div><p className="mt-1 text-sm text-slate-500">{tradeLabel(workOrder.trade)} · {categoryLabel(workOrder.category)}</p></div><Button type="button" onClick={() => { setEditing(true); setSaved(false); }}>Edit Work Order</Button></div>{saved && <p role="status" className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">Work Order saved.</p>}<div className="-mx-1 flex gap-1 overflow-x-auto border-b border-slate-200 px-1" role="tablist" aria-label="Work Order sections">{WORKSPACE_TABS.map((tab) => <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} onClick={() => setActiveTab(tab)} className={`shrink-0 border-b-2 px-3 py-3 text-sm font-medium capitalize ${activeTab === tab ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500"}`}>{tab}</button>)}</div>{activeTab === "overview" && <div className="grid grid-cols-1 gap-6 lg:grid-cols-3"><Card className="lg:col-span-2"><CardHeader title="Scope" description={workOrder.serviceAddress} /><div className="px-5 pb-5"><p className="whitespace-pre-line text-sm text-slate-700">{workOrder.description}</p></div></Card><Card className="p-5"><h2 className="text-sm font-semibold text-slate-900">Client</h2>{client ? <Link href={`/clients/${client.id}`} className="mt-3 block text-sm font-medium text-blue-700 hover:underline">{getClientFullName(client)}</Link> : <p className="mt-3 text-sm text-red-600">The assigned client could not be found.</p>}</Card><Card className="p-5"><h2 className="text-sm font-semibold text-slate-900">Schedule</h2><p className="mt-3 text-sm text-slate-700">{formatDate(workOrder.startDate)} – {formatDate(workOrder.endDate)}</p></Card><Card className="p-5"><h2 className="text-sm font-semibold text-slate-900">Budget & Progress</h2><p className="mt-3 text-lg font-semibold text-slate-900">{formatCurrency(workOrder.budget)}</p><p className="mt-1 text-sm text-slate-500">{workOrder.progress}% complete</p></Card><Card className="p-5"><h2 className="text-sm font-semibold text-slate-900">Notes</h2><p className="mt-3 whitespace-pre-line text-sm text-slate-700">{workOrder.internalNotes || "No internal notes yet."}</p></Card></div>}{activeTab === "photos" && <WorkOrderPhotos workOrderId={workOrderId} attachments={intelligence.attachments.filter((item) => item.kind === "photo")} />}{activeTab === "measurements" && <WorkOrderMeasurements workOrderId={workOrderId} measurements={intelligence.measurements} />}{activeTab === "market pricing" && <WorkOrderMarketPricing workOrderId={workOrderId} trade={tradeLabel(workOrder.trade)} serviceAddress={workOrder.serviceAddress} description={workOrder.description} measurements={intelligence.measurements} />}{activeTab === "notes" && <WorkOrderNotes workOrderId={workOrderId} notes={intelligence.notes} />}{activeTab === "documents" && <WorkOrderDocuments workOrderId={workOrderId} attachments={intelligence.attachments.filter((item) => item.kind === "document")} />}</div>;
 }
