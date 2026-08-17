@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   description:
     "AI-powered estimating, work order tracking, and invoicing built for contractors.",
   applicationName: "Quotiq AI",
+  other: {
+    "impact-site-verification": "d61d3758-6d35-4b66-96cc-ddc41aee4897",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
