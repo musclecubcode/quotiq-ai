@@ -1,5 +1,10 @@
 # Quotiq AI — Data Architecture
 
+> The production tenant and persistence foundation is documented in
+> [`PRODUCTION_DATA_LAYER.md`](./PRODUCTION_DATA_LAYER.md). The browser-backed
+> repositories described below remain active until production infrastructure is
+> configured and an explicit import has been verified.
+
 This document describes the core domain model introduced in Sprint 2.
 It supersedes the earlier client-centric shape (Sprint 1), where jobs,
 estimates, invoices, photos, notes, and documents all referenced a

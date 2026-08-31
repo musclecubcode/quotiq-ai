@@ -247,8 +247,9 @@ export interface CompanyLogoAsset {
 }
 
 /**
- * The contractor tenant profile. `ownerId` is currently a Clerk user ID and
- * becomes an organization ID when organization membership is enabled.
+ * The contractor tenant profile. `ownerId` is the browser compatibility scope
+ * only. Production authorization uses persisted Membership records and
+ * companyId; ownerId and Clerk metadata are never authorization sources.
  */
 export interface ContractorCompany {
   id: string;
