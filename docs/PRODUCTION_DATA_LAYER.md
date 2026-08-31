@@ -2,10 +2,12 @@
 
 ## Status
 
-This milestone establishes a provider-independent server data boundary. It does
-not switch the running application away from localStorage or IndexedDB because
-no production database, object store, or Clerk Organizations configuration is
-currently connected. Existing browser data and UI behavior remain unchanged.
+This milestone establishes a provider-independent server data boundary and
+server-only PostgreSQL/Supabase Storage adapters. The production Supabase schema
+and private `quotiq-assets` bucket are provisioned. The running UI is not switched
+away from localStorage or IndexedDB until Clerk company memberships are seeded
+and the explicit, non-destructive browser import flow is exposed. Existing
+browser data and UI behavior remain unchanged.
 
 The target database is PostgreSQL 16 or newer. PostgreSQL fits the relational
 ownership graph, supports transactions and composite foreign keys, and provides
@@ -114,6 +116,14 @@ Future estimates and invoices will store `issuer_snapshot` JSON at issuance so
 later profile or logo changes cannot alter historical documents.
 
 ## Required production connection
+
+The server adapters are selected lazily through `lib/server/production-runtime.ts`.
+Configure these only in encrypted deployment environment settings:
+
+- `DATABASE_URL`: Supabase transaction-pooler URI for serverless deployments.
+- `SUPABASE_URL`: project URL (server-side adapter configuration).
+- `SUPABASE_SERVICE_ROLE_KEY`: server-only key; never expose with `NEXT_PUBLIC_`.
+- `SUPABASE_ASSET_BUCKET`: optional; defaults to `quotiq-assets`.
 
 Before enabling server persistence:
 
