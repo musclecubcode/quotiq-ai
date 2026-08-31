@@ -235,3 +235,64 @@ export interface WarrantyRecord {
   expiryDate: string;
   terms: string;
 }
+
+/** A replaceable reference to a company-owned binary branding asset. */
+export interface CompanyLogoAsset {
+  id: string;
+  storageKey: string;
+  fileName: string;
+  mimeType: "image/png" | "image/jpeg" | "image/webp";
+  size: number;
+  createdAt: string;
+}
+
+/**
+ * The contractor tenant profile. `ownerId` is currently a Clerk user ID and
+ * becomes an organization ID when organization membership is enabled.
+ */
+export interface ContractorCompany {
+  id: string;
+  ownerId: string;
+  legalName: string;
+  displayName: string;
+  email: string;
+  phone: string;
+  website: string;
+  address: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  contractorLicense: string;
+  defaultCurrency: string;
+  defaultMarkup: number;
+  defaultTaxRate: number;
+  paymentTerms: string;
+  estimateTerms: string;
+  invoiceTerms: string;
+  accentColor: string;
+  logo: CompanyLogoAsset | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CompanyProfile = ContractorCompany;
+
+/** Immutable company identity copied onto a document when it is issued. */
+export interface IssuerSnapshot {
+  readonly companyId: string;
+  readonly legalName: string;
+  readonly displayName: string;
+  readonly email: string;
+  readonly phone: string;
+  readonly website: string;
+  readonly address: string;
+  readonly city: string;
+  readonly state: string;
+  readonly postalCode: string;
+  readonly country: string;
+  readonly contractorLicense: string;
+  readonly accentColor: string;
+  readonly logo: Readonly<CompanyLogoAsset> | null;
+  readonly capturedAt: string;
+}

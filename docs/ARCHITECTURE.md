@@ -169,3 +169,101 @@ Per this pass's brief: no AI-assisted trade detection, no trade-specific
 pricing/estimating logic, and no per-trade Work Order *types* (all trades
 share the same `WorkOrder` shape, `workorder-storage.ts` persistence, and
 `/jobs` list/detail UI).
+
+## Company ownership and branding foundation
+
+`ContractorCompany` (also exported as `CompanyProfile`) is now the intended
+tenant root. It owns the contractor's identity, contact information, pricing
+defaults, document terms, brand color, and optional logo asset reference. The
+Phase 1 relationship is:
+
+```text
+ContractorCompany 1 ──< Membership >── 1 User
+ContractorCompany 1 ──< Client 1 ──< WorkOrder
+WorkOrder 1 ──< Estimate
+WorkOrder 1 ──< Invoice
+```
+
+Membership is an architectural boundary, not a persisted entity yet. Until
+Clerk Organizations and a production database are enabled, a Clerk user ID is
+used as the profile `ownerId` and acts as a single-member tenant. The
+`AccountStorageBoundary` supplies that owner scope. This preserves existing
+accounts and does not require a dangerous migration of current browser data.
+
+### Company profile repository
+
+`lib/company-profile-repository.ts` is the current profile persistence adapter.
+It stores one versionable profile namespace per owner under
+`quotiq.companyProfile.<ownerId>`. Profile validation and issuer snapshot logic
+live separately in `lib/company-profile.ts`, so a database adapter can replace
+browser persistence without changing document or settings components.
+
+The Settings screen continues mirroring company name and license into Clerk
+user metadata for compatibility with onboarding and the existing dashboard.
+Clerk metadata is not the future source of truth for company records.
+
+### Logo storage abstraction
+
+`CompanyLogoStorage` separates binary operations (`put`, `get`, `delete`) from
+profile metadata. The local development implementation uses the
+`quotiq-company-assets` IndexedDB database and tenant-prefixed storage keys.
+It accepts only PNG, JPEG, and WebP files up to 5 MB and checks file signatures
+instead of trusting extensions or browser-provided MIME labels.
+
+Before production, replace this adapter with authenticated object storage:
+
+1. Authorize the active company membership on every operation.
+2. Upload through a protected server endpoint or short-lived signed request.
+3. Repeat byte-level MIME and size validation server-side, normalize images,
+   strip metadata, and generate bounded document/display variants.
+4. Persist immutable asset metadata in the database and use tenant-prefixed
+   object keys with private-by-default access.
+5. Add lifecycle cleanup, malware/abuse controls, logging, and backups.
+
+No cloud persistence or credentials are implied by the Phase 1 adapter.
+
+### Document branding and issuer snapshots
+
+`BrandedDocumentHeader` is the shared presentation component for future
+estimate and invoice previews/PDFs. It accepts either the live company profile
+or an `IssuerSnapshot` and renders the logo, company identity, contact details,
+license, and accent color.
+
+`createIssuerSnapshot` copies and freezes identity and branding fields at the
+moment a document is issued. Future draft documents may reference the live
+profile, but sent/issued estimates and invoices must persist this snapshot.
+Changing a company name, address, license, logo, or brand color must never
+retroactively alter a historical document. Logo objects therefore need
+immutable/versioned retention for as long as an issued snapshot references
+them.
+
+## What remains local-only after Phase 1
+
+- Company profiles: localStorage, scoped by the current Clerk user ID.
+- Clients and Work Orders: localStorage through `workorder-repository.ts`.
+- Measurements, notes, and attachment metadata: localStorage through
+  `job-intelligence-repository.ts`.
+- Company logos, Work Order photos, and document bytes: IndexedDB.
+- Estimates, invoices, dashboard financials, and AI responses: fixtures or
+  beta placeholders where noted in their screens.
+
+Browser scoping improves accidental cross-account visibility on one device but
+is not a production authorization boundary. Data does not sync, back up, or
+survive browser storage loss.
+
+## Next production persistence migration
+
+The next phase should provision a relational database and private object
+storage, then add server-side repositories with company-scoped authorization.
+Migrate in this order:
+
+1. `ContractorCompany`, `Membership`, and user-to-company authorization.
+2. Logo assets and company settings, replacing the two local adapters.
+3. Clients and Work Orders, preserving their existing IDs and relationships.
+4. Measurements, notes, and attachment metadata.
+5. Photo/document blobs with resumable uploads and integrity checks.
+6. Estimates, invoices, issuer snapshots, document numbering, and payments.
+
+Migration should be an explicit, user-confirmed import with validation and an
+idempotency record. Existing localStorage/IndexedDB data must remain readable
+until the server copy is verified; do not silently delete browser data.
