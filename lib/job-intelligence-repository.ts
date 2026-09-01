@@ -103,5 +103,6 @@ export function useJobIntelligence(workOrderId: string) {
   };
 }
 export function getJobIntelligence(workOrderId: string) { const store = snapshot(); return { measurements: store.measurements.filter((item) => item.workOrderId === workOrderId), notes: store.notes.filter((item) => item.workOrderId === workOrderId), attachments: store.attachments.filter((item) => item.workOrderId === workOrderId) }; }
+export function getJobIntelligenceExport() { const store = snapshot(); return { measurements: [...store.measurements], notes: [...store.notes], attachments: [...store.attachments] }; }
 export function resetJobIntelligenceCacheForTests() { activeUserScope = ""; cachedRaw = undefined; cached = EMPTY; }
 export function setJobIntelligenceUserScope(userId: string) { if (activeUserScope === userId) return; activeUserScope = userId; cachedRaw = undefined; cached = EMPTY; }
