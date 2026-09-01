@@ -76,6 +76,8 @@ export function useCompanyProfile() {
   return { profile, saveCompanyProfile, setCompanyLogo };
 }
 
+export function getCompanyProfileSnapshot() { return read(); }
+
 export function setCompanyProfileOwnerScope(ownerId: string) {
   if (activeOwnerId === ownerId) return;
   activeOwnerId = ownerId;
