@@ -32,7 +32,15 @@ export class TenantDataService {
     if (!workOrder) throw notFound("Work Order");
     return workOrder;
   }
+  async previewBrowserDataImport(input: unknown) {
+    return this.store.previewBrowserDataImport(this.context.companyId, validateBrowserDataImport(input));
+  }
   async importBrowserData(input: unknown): Promise<BrowserDataImportResult> {
     return await this.store.importBrowserData(this.context.companyId, validateBrowserDataImport(input));
+  }
+  async getCompanyDataSnapshot() {
+    const snapshot = await this.store.getCompanyDataSnapshot(this.context.companyId);
+    if (!snapshot) throw notFound("Company");
+    return snapshot;
   }
 }

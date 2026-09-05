@@ -64,6 +64,22 @@ export interface BrowserDataImportResult {
   };
   verifiedAt: string;
   localDataRetained: true;
+  idempotentReplay: boolean;
+}
+
+export interface BrowserDataImportPreview {
+  status: "ready" | "already_imported";
+  records: BrowserDataImportResult["imported"];
+  localDataRetained: true;
+}
+
+export interface CompanyDataSnapshot {
+  company: PersistedCompany;
+  clients: CompanyClient[];
+  workOrders: CompanyWorkOrder[];
+  measurements: CompanyMeasurement[];
+  notes: CompanyNote[];
+  attachments: CompanyAttachment[];
 }
 
 export interface AuthenticatedIdentity {

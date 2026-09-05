@@ -1,0 +1,6 @@
+import { getTenantDataService } from "@/lib/server/production-runtime";
+import { validateNewClientInput } from "@/lib/server/data/validation";
+import { dataErrorResponse, jsonBody } from "../http";
+
+export async function GET() { try { return Response.json(await (await getTenantDataService()).listClients(), { headers: { "cache-control": "no-store" } }); } catch (error) { return dataErrorResponse(error); } }
+export async function POST(request: Request) { try { return Response.json(await (await getTenantDataService()).createClient(validateNewClientInput(await jsonBody(request))), { status: 201 }); } catch (error) { return dataErrorResponse(error); } }

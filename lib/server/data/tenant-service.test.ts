@@ -33,6 +33,14 @@ describe("production tenant data service", () => {
     expect(saved).toMatchObject({ id: company.id, displayName: "Alpha Electrical", defaultMarkup: 18 });
   });
 
+  it("provisions the first user once and resolves the same owner on retries", async () => {
+    const first = await store.ensureCompanyWithOwner(companyProfileDefaults("Alpha"), "user_alpha", null);
+    const retry = await store.ensureCompanyWithOwner(companyProfileDefaults("Changed name"), "user_alpha", null);
+    expect(first.created).toBe(true);
+    expect(retry).toMatchObject({ created: false, company: { id: first.company.id, displayName: "Alpha" }, membership: { id: first.membership.id, role: "owner" } });
+    expect(await store.listActiveMembershipsForUser("user_alpha")).toHaveLength(1);
+  });
+
   it("rejects unauthenticated users and users without company membership", async () => {
     await store.createCompanyWithOwner(companyProfileDefaults("Alpha"), "user_alpha", "org_alpha");
     await expect(resolveAuthorizedCompany(store, null)).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
@@ -83,7 +91,18 @@ describe("production tenant data service", () => {
     expect(result).toMatchObject({ localDataRetained: true, imported: { clients: 1, workOrders: 1, measurements: 1 } });
     expect((await service.getClient("client_local_1")).id).toBe("client_local_1");
     expect((await service.getWorkOrder("work_local_1")).clientId).toBe("client_local_1");
-    await expect(service.importBrowserData(payload)).rejects.toMatchObject({ code: "CONFLICT" });
+    const replay = await service.importBrowserData(payload);
+    expect(replay).toMatchObject({ idempotentReplay: true, localDataRetained: true, imported: { clients: 1, workOrders: 1 } });
+    expect(await service.listClients()).toHaveLength(1);
+  });
+
+  it("rejects a changed replay without modifying the verified import", async () => {
+    await store.createCompanyWithOwner(companyProfileDefaults("Alpha"), "user_alpha", null);
+    const service = new TenantDataService(store, await resolveAuthorizedCompany(store, { clerkUserId: "user_alpha", clerkOrganizationId: null }));
+    const payload = { version: 1, clients: [{ id: "client_1", ...clientInput("Original"), status: "active", createdAt: timestamp }], workOrders: [], measurements: [], notes: [], attachments: [] };
+    await service.importBrowserData(payload);
+    await expect(service.importBrowserData({ ...payload, clients: [{ ...payload.clients[0], firstName: "Changed" }] })).rejects.toMatchObject({ code: "CONFLICT" });
+    expect((await service.getClient("client_1")).firstName).toBe("Original");
   });
 
   it("rejects migration records with broken relationships or duplicate IDs", async () => {

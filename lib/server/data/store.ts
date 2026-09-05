@@ -3,6 +3,8 @@ import type { NewClientInput, NewWorkOrderInput, WorkOrderUpdate } from "../../w
 import type {
   AuthorizedCompanyContext,
   BrowserDataImportResult,
+  BrowserDataImportPreview,
+  CompanyDataSnapshot,
   CompanyClient,
   CompanyMembership,
   CompanyWorkOrder,
@@ -16,6 +18,7 @@ import type {
  */
 export interface ProductionDataStore {
   createCompanyWithOwner(input: CompanyProfileInput, clerkUserId: string, clerkOrganizationId: string | null): Promise<{ company: PersistedCompany; membership: CompanyMembership }>;
+  ensureCompanyWithOwner(input: CompanyProfileInput, clerkUserId: string, clerkOrganizationId: string | null): Promise<{ company: PersistedCompany; membership: CompanyMembership; created: boolean }>;
   findCompanyByClerkOrganizationId(clerkOrganizationId: string): Promise<PersistedCompany | null>;
   findActiveMembership(companyId: string, clerkUserId: string): Promise<CompanyMembership | null>;
   listActiveMembershipsForUser(clerkUserId: string): Promise<CompanyMembership[]>;
@@ -31,5 +34,7 @@ export interface ProductionDataStore {
   createWorkOrder(companyId: string, input: NewWorkOrderInput): Promise<CompanyWorkOrder>;
   updateWorkOrder(companyId: string, workOrderId: string, input: WorkOrderUpdate): Promise<CompanyWorkOrder | null>;
 
+  previewBrowserDataImport(companyId: string, data: ValidatedBrowserDataImport): Promise<BrowserDataImportPreview>;
   importBrowserData(companyId: string, data: ValidatedBrowserDataImport): Promise<BrowserDataImportResult>;
+  getCompanyDataSnapshot(companyId: string): Promise<CompanyDataSnapshot | null>;
 }
