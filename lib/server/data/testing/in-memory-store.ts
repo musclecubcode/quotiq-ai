@@ -3,6 +3,7 @@ import { categoryLabel } from "../../../work-order-options";
 import type { NewClientInput, NewWorkOrderInput, WorkOrderUpdate } from "../../../workorder-repository";
 import type { CompanyAttachment, CompanyMeasurement, CompanyNote } from "../types";
 import { DataLayerError, invalid } from "../errors";
+import { analyzeBrowserImport, importCounts } from "../browser-import";
 import type { ProductionDataStore } from "../store";
 import type {
   AuthorizedCompanyContext,
@@ -57,6 +58,19 @@ export class InMemoryProductionDataStore implements ProductionDataStore {
     this.companies.set(company.id, company);
     this.memberships.set(membership.id, membership);
     return { company, membership };
+  }
+
+  async ensureCompanyWithOwner(input: CompanyProfileInput, clerkUserId: string, clerkOrganizationId: string | null) {
+    const memberships = await this.listActiveMembershipsForUser(clerkUserId);
+    if (memberships.length > 1) throw new DataLayerError("CONFLICT", "Select an active company before continuing.");
+    if (memberships[0]) {
+      const company = await this.getCompany(memberships[0].companyId);
+      if (!company) throw new DataLayerError("NOT_FOUND", "Company was not found.");
+      if (clerkOrganizationId && company.clerkOrganizationId !== clerkOrganizationId) throw new DataLayerError("FORBIDDEN", "You do not have access to this company.");
+      return { company, membership: memberships[0], created: false };
+    }
+    const created = await this.createCompanyWithOwner(input, clerkUserId, clerkOrganizationId);
+    return { ...created, created: true };
   }
 
   async findCompanyByClerkOrganizationId(id: string) {
@@ -122,26 +136,33 @@ export class InMemoryProductionDataStore implements ProductionDataStore {
     return saved;
   }
 
+  async getCompanyDataSnapshot(companyId: string) {
+    const company = await this.getCompany(companyId);
+    if (!company) return null;
+    return { company, clients: await this.listClients(companyId), workOrders: await this.listWorkOrders(companyId),
+      measurements: [...this.measurements.values()].filter((item) => item.companyId === companyId),
+      notes: [...this.notes.values()].filter((item) => item.companyId === companyId),
+      attachments: [...this.attachments.values()].filter((item) => item.companyId === companyId) };
+  }
+
+  async previewBrowserDataImport(companyId: string, data: ValidatedBrowserDataImport) {
+    const snapshot = await this.getCompanyDataSnapshot(companyId);
+    if (!snapshot) throw new DataLayerError("NOT_FOUND", "Company was not found.");
+    return { status: analyzeBrowserImport(snapshot, data), records: importCounts(data), localDataRetained: true as const };
+  }
+
   async importBrowserData(companyId: string, data: ValidatedBrowserDataImport): Promise<BrowserDataImportResult> {
-    const collisions = [
-      ...data.clients.map((item) => this.clients.has(key(companyId, item.id))),
-      ...data.workOrders.map((item) => this.workOrders.has(key(companyId, item.id))),
-      ...data.measurements.map((item) => this.measurements.has(key(companyId, item.id))),
-      ...data.notes.map((item) => this.notes.has(key(companyId, item.id))),
-      ...data.attachments.map((item) => this.attachments.has(key(companyId, item.id))),
-    ];
-    if (collisions.some(Boolean)) throw new DataLayerError("CONFLICT", "Import would overwrite existing company data.");
+    const preview = await this.previewBrowserDataImport(companyId, data);
+    if (preview.status === "already_imported") return { companyId, imported: preview.records, verifiedAt: this.now(), localDataRetained: true, idempotentReplay: true };
+    if (Object.values(preview.records).every((count) => count === 0)) return { companyId, imported: preview.records, verifiedAt: this.now(), localDataRetained: true, idempotentReplay: false };
     const timestamp = this.now();
     data.clients.forEach((item) => this.clients.set(key(companyId, item.id), { ...item, companyId, updatedAt: timestamp }));
     data.workOrders.forEach((item) => this.workOrders.set(key(companyId, item.id), { ...item, companyId, createdAt: timestamp, updatedAt: timestamp }));
     data.measurements.forEach((item) => this.measurements.set(key(companyId, item.id), { ...item, companyId }));
     data.notes.forEach((item) => this.notes.set(key(companyId, item.id), { ...item, companyId }));
     data.attachments.forEach((item) => this.attachments.set(key(companyId, item.id), { ...item, companyId }));
-    return {
-      companyId,
-      imported: { clients: data.clients.length, workOrders: data.workOrders.length, measurements: data.measurements.length, notes: data.notes.length, attachments: data.attachments.length },
-      verifiedAt: timestamp,
-      localDataRetained: true,
-    };
+    const verified = await this.getCompanyDataSnapshot(companyId);
+    if (!verified || analyzeBrowserImport(verified, data) !== "already_imported") throw new DataLayerError("CONFLICT", "Imported data could not be verified.");
+    return { companyId, imported: importCounts(data), verifiedAt: timestamp, localDataRetained: true, idempotentReplay: false };
   }
 }

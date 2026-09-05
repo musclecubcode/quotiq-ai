@@ -9,14 +9,11 @@ export async function activateCompany() {
   const user = await currentUser();
   if (!user) redirect("/sign-in");
   const store = getProductionDataStore();
-  const memberships = await store.listActiveMembershipsForUser(user.id);
-  if (!memberships.length) {
-    const companyName = String(user.unsafeMetadata.companyName ?? "").trim();
-    if (!companyName) redirect("/onboarding");
-    await store.createCompanyWithOwner({
-      ...companyProfileDefaults(companyName),
-      contractorLicense: String(user.unsafeMetadata.contractorLicense ?? "").trim(),
-    }, user.id, null);
-  }
+  const companyName = String(user.unsafeMetadata.companyName ?? "").trim();
+  if (!companyName) redirect("/onboarding");
+  await store.ensureCompanyWithOwner({
+    ...companyProfileDefaults(companyName),
+    contractorLicense: String(user.unsafeMetadata.contractorLicense ?? "").trim(),
+  }, user.id, null);
   redirect("/migration");
 }

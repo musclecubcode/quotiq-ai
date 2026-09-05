@@ -97,8 +97,11 @@ localStorage + IndexedDB
 The current validator accepts version 1 metadata for company profile, clients,
 Work Orders, measurements, notes, and attachments. It preserves IDs, rejects
 broken relationships and duplicates, limits each record category to 10,000,
-and rejects imports that would overwrite records already present in that
-company. Profile data is treated as an import candidate and must not silently
+and rejects imports that would overwrite different records already present in
+that company. An exact replay is verified and succeeds without creating
+duplicates. The UI requires a validation preview and explicit confirmation,
+then offers an authenticated, tenant-scoped recovery snapshot. Browser data is
+never automatically removed. Profile data is treated as an import candidate and must not silently
 overwrite the authoritative company profile.
 
 Photo, document, and logo bytes require a separate authenticated object-storage
