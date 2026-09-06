@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { databaseProjectRef, supabaseProjectRef } from "./production-health-fingerprints";
+import { databaseProjectRef, serviceRoleProjectRef, supabaseProjectRef } from "./production-health-fingerprints";
 
 describe("production health project fingerprints", () => {
   it("extracts matching refs from direct and pooled Supabase URLs", () => {
@@ -11,5 +11,11 @@ describe("production health project fingerprints", () => {
   it("returns null for unrelated or malformed URLs", () => {
     expect(supabaseProjectRef("https://example.com")).toBeNull();
     expect(databaseProjectRef("not-a-url")).toBeNull();
+  });
+
+  it("reads only the non-secret project ref from a legacy service JWT", () => {
+    const payload = Buffer.from(JSON.stringify({ ref: "nbwypinfgdwklxhmkhuo", role: "service_role" })).toString("base64url");
+    expect(serviceRoleProjectRef(`header.${payload}.signature`)).toBe("nbwypinfgdwklxhmkhuo");
+    expect(serviceRoleProjectRef("opaque-secret")).toBeNull();
   });
 });

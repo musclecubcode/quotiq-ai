@@ -11,3 +11,10 @@ export function databaseProjectRef(value: string) {
       ?? null;
   } catch { return null; }
 }
+
+export function serviceRoleProjectRef(value: string) {
+  try {
+    const payload = JSON.parse(Buffer.from(value.split(".")[1], "base64url").toString("utf8")) as { ref?: unknown };
+    return typeof payload.ref === "string" ? payload.ref : null;
+  } catch { return null; }
+}

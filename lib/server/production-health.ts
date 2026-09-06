@@ -3,7 +3,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { Pool } from "pg";
 import { DEFAULT_ASSET_BUCKET } from "./storage/private-object-store";
-import { databaseProjectRef, supabaseProjectRef } from "./production-health-fingerprints";
+import { databaseProjectRef, serviceRoleProjectRef, supabaseProjectRef } from "./production-health-fingerprints";
 
 const EXPECTED_TABLES = [
   "contractor_companies", "memberships", "company_assets", "clients", "work_orders",
@@ -17,6 +17,7 @@ export async function getProductionHealth() {
   const bucketName = process.env.SUPABASE_ASSET_BUCKET?.trim() || DEFAULT_ASSET_BUCKET;
   const apiRef = supabaseProjectRef(supabaseUrl);
   const databaseRef = databaseProjectRef(databaseUrl);
+  const serviceRoleRef = serviceRoleProjectRef(serviceRoleKey);
   const requiredVariablesPresent = Boolean(databaseUrl && supabaseUrl && serviceRoleKey && bucketName);
   let databaseReachable = false;
   let schemaProvisioned = false;
@@ -24,6 +25,7 @@ export async function getProductionHealth() {
   let storageReachable = false;
   let bucketProvisioned = false;
   let bucketPrivate = false;
+  let storageFailure: "none" | "unauthorized" | "unavailable" = "none";
 
   if (databaseUrl) {
     const pool = new Pool({ connectionString: databaseUrl, max: 1, connectionTimeoutMillis: 8_000,
@@ -49,22 +51,24 @@ export async function getProductionHealth() {
         const bucket = data.find((item) => item.name === bucketName);
         bucketProvisioned = Boolean(bucket);
         bucketPrivate = bucket ? !bucket.public : false;
-      }
-    } catch { storageReachable = false; }
+      } else storageFailure = "statusCode" in error && (error.statusCode === "401" || error.statusCode === "403") ? "unauthorized" : "unavailable";
+    } catch { storageReachable = false; storageFailure = "unavailable"; }
   }
 
-  const refsAgree = Boolean(apiRef && databaseRef && apiRef === databaseRef);
+  const refsAgree = Boolean(apiRef && databaseRef && apiRef === databaseRef && (!serviceRoleRef || apiRef === serviceRoleRef));
   return {
     ok: requiredVariablesPresent && refsAgree && databaseReachable && schemaProvisioned && storageReachable && bucketProvisioned && bucketPrivate,
     deploymentCommit: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
     supabaseProjectRef: apiRef,
     databaseProjectRef: databaseRef,
+    serviceRoleProjectRef: serviceRoleRef,
     refsAgree,
     requiredVariablesPresent,
     databaseReachable,
     schemaProvisioned,
     missingTables,
     storageReachable,
+    storageFailure,
     bucketName,
     bucketProvisioned,
     bucketPrivate,
