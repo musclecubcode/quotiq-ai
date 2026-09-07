@@ -1,8 +1,9 @@
 import type { CompanyProfileInput } from "../../company-profile";
+import type { NewInvoiceInput } from "../../types";
 import type { NewClientInput, NewWorkOrderInput, WorkOrderUpdate } from "../../workorder-repository";
 import { notFound } from "./errors";
 import type { ProductionDataStore } from "./store";
-import type { AuthorizedCompanyContext, BrowserDataImportResult, CompanyClient, CompanyWorkOrder } from "./types";
+import type { AuthorizedCompanyContext, BrowserDataImportResult, CompanyClient, CompanyInvoice, CompanyWorkOrder } from "./types";
 import { validateBrowserDataImport, validateEntityId } from "./validation";
 
 export class TenantDataService {
@@ -32,6 +33,8 @@ export class TenantDataService {
     if (!workOrder) throw notFound("Work Order");
     return workOrder;
   }
+  listInvoices(): Promise<CompanyInvoice[]> { return this.store.listInvoices(this.context.companyId); }
+  createInvoice(input: NewInvoiceInput): Promise<CompanyInvoice> { return this.store.createInvoice(this.context.companyId, input); }
   async previewBrowserDataImport(input: unknown) {
     return this.store.previewBrowserDataImport(this.context.companyId, validateBrowserDataImport(input));
   }

@@ -6,8 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/Field";
-import { useClients } from "@/lib/client-storage";
-import { useStoredWorkOrders } from "@/lib/workorder-storage";
+import { useCloudClients, useCloudWorkOrders } from "@/components/auth/CloudDataProvider";
 import {
   TRADE_CATEGORIES,
   TRADE_DETAIL_FIELDS,
@@ -26,10 +25,11 @@ import type {
 
 export function CreateWorkOrderForm() {
   const router = useRouter();
-  const { clients } = useClients();
-  const { addWorkOrder } = useStoredWorkOrders();
+  const { clients } = useCloudClients();
+  const { addWorkOrder } = useCloudWorkOrders();
   const [error, setError] = useState<string | null>(null);
   const [trade, setTrade] = useState<TradeCategory | "">("");
+  const [busy, setBusy] = useState(false);
 
   if (clients.length === 0) {
     return (
@@ -44,7 +44,7 @@ export function CreateWorkOrderForm() {
     );
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const data = new FormData(event.currentTarget);
@@ -87,20 +87,27 @@ export function CreateWorkOrderForm() {
       }
     }
 
-    const workOrder = addWorkOrder({
-      clientId,
-      serviceAddress,
-      trade: tradeValue,
-      tradeDetails: Object.keys(tradeDetails).length > 0 ? tradeDetails : undefined,
-      category,
-      priority,
-      status,
-      description,
-      scheduledDate,
-      internalNotes: internalNotes || undefined,
-    });
-
-    router.push(`/jobs/${workOrder.id}`);
+    setBusy(true);
+    setError(null);
+    try {
+      const workOrder = await addWorkOrder({
+        clientId,
+        serviceAddress,
+        trade: tradeValue,
+        tradeDetails: Object.keys(tradeDetails).length > 0 ? tradeDetails : undefined,
+        category,
+        priority,
+        status,
+        description,
+        scheduledDate,
+        internalNotes: internalNotes || undefined,
+      });
+      router.push(`/jobs/${workOrder.id}`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to create the Work Order.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -281,8 +288,8 @@ export function CreateWorkOrderForm() {
         )}
 
         <div className="flex gap-3 sm:col-span-2">
-          <Button type="submit">Create Work Order</Button>
-          <Button type="button" variant="secondary" onClick={() => router.push("/jobs")}>
+          <Button type="submit" disabled={busy}>{busy ? "Creating…" : "Create Work Order"}</Button>
+          <Button type="button" variant="secondary" disabled={busy} onClick={() => router.push("/jobs")}>
             Cancel
           </Button>
         </div>

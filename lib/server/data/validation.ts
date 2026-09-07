@@ -1,4 +1,4 @@
-import type { Client, WorkOrder, WorkOrderAttachment, WorkOrderMeasurement, WorkOrderNote } from "../../types";
+import type { Client, NewInvoiceInput, SavedInvoice, WorkOrder, WorkOrderAttachment, WorkOrderMeasurement, WorkOrderNote } from "../../types";
 import type { CompanyProfileInput } from "../../company-profile";
 import { companyProfileDefaults } from "../../company-profile";
 import type { NewClientInput, NewWorkOrderInput, WorkOrderUpdate } from "../../workorder-repository";
@@ -7,6 +7,7 @@ import { invalid } from "./errors";
 import type { BrowserDataImport, ValidatedBrowserDataImport } from "./types";
 
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_RECORDS_PER_KIND = 10_000;
 
 function object(value: unknown, label: string): Record<string, unknown> {
@@ -82,6 +83,21 @@ function related<T extends { id: string; workOrderId: string }>(value: unknown, 
   return record as unknown as T;
 }
 
+function invoice(value: unknown): SavedInvoice {
+  const record = related<SavedInvoice>(value, "Invoice") as unknown as Record<string, unknown>;
+  id(record, "clientId", "Invoice client ID");
+  text(record, "number", "Invoice number");
+  text(record, "description", "Invoice description");
+  const issueDate = text(record, "issueDate", "Invoice issue date");
+  const dueDate = text(record, "dueDate", "Invoice due date");
+  if (!DATE_ONLY.test(issueDate) || !DATE_ONLY.test(dueDate) || dueDate < issueDate) throw invalid("Invoice dates are invalid.");
+  option(record, "status", ["draft", "sent", "paid", "overdue"], "Invoice status");
+  if (typeof record.amount !== "number" || !Number.isFinite(record.amount) || record.amount < 0) throw invalid("Invoice amount is invalid.");
+  if (typeof record.amountPaid !== "number" || !Number.isFinite(record.amountPaid) || record.amountPaid < 0 || record.amountPaid > record.amount) throw invalid("Invoice paid amount is invalid.");
+  text(record, "createdAt", "Invoice creation date");
+  return record as unknown as SavedInvoice;
+}
+
 export function validateBrowserDataImport(value: unknown): ValidatedBrowserDataImport {
   const input = object(value, "Import payload");
   if (input.version !== 1) throw invalid("Import version is not supported.");
@@ -90,13 +106,17 @@ export function validateBrowserDataImport(value: unknown): ValidatedBrowserDataI
   const measurements = array(input.measurements, "Measurements").map((item) => { const record=related<WorkOrderMeasurement>(item,"Measurement") as unknown as Record<string,unknown>; text(record,"label","Measurement label");text(record,"unit","Measurement unit");text(record,"createdAt","Measurement creation date");if(typeof record.quantity!=="number"||!Number.isFinite(record.quantity)) throw invalid("Measurement quantity is invalid.");return record as unknown as WorkOrderMeasurement; });
   const notes = array(input.notes, "Notes").map((item) => { const record=related<WorkOrderNote>(item,"Note") as unknown as Record<string,unknown>;text(record,"body","Note body");option(record,"visibility",["internal","client"],"Note visibility");text(record,"createdAt","Note creation date");text(record,"updatedAt","Note update date");return record as unknown as WorkOrderNote; });
   const attachments = array(input.attachments, "Attachments").map((item) => { const record=related<WorkOrderAttachment>(item,"Attachment") as unknown as Record<string,unknown>;option(record,"kind",["photo","document"],"Attachment kind");text(record,"fileName","Attachment file name");text(record,"mimeType","Attachment MIME type");text(record,"uploadedAt","Attachment upload date");if(typeof record.size!=="number"||!Number.isFinite(record.size)||record.size<=0) throw invalid("Attachment size is invalid.");return record as unknown as WorkOrderAttachment; });
-  uniqueIds(clients, "Clients"); uniqueIds(workOrders, "Work Orders"); uniqueIds(measurements, "Measurements"); uniqueIds(notes, "Notes"); uniqueIds(attachments, "Attachments");
+  const invoices = array(input.invoices ?? [], "Invoices").map(invoice);
+  uniqueIds(clients, "Clients"); uniqueIds(workOrders, "Work Orders"); uniqueIds(measurements, "Measurements"); uniqueIds(notes, "Notes"); uniqueIds(attachments, "Attachments"); uniqueIds(invoices, "Invoices");
 
   const clientIds = new Set(clients.map((item) => item.id));
   const workOrderIds = new Set(workOrders.map((item) => item.id));
   for (const item of workOrders) if (!clientIds.has(item.clientId)) throw invalid(`Work Order ${item.id} references a client outside this import.`);
   for (const item of [...measurements, ...notes, ...attachments]) {
     if (!workOrderIds.has(item.workOrderId)) throw invalid(`Record ${item.id} references a Work Order outside this import.`);
+  }
+  for (const item of invoices) {
+    if (!workOrderIds.has(item.workOrderId) || !clientIds.has(item.clientId)) throw invalid(`Invoice ${item.id} references records outside this import.`);
   }
   const profile = input.companyProfile === undefined ? undefined : object(input.companyProfile, "Company profile") as unknown as BrowserDataImport["companyProfile"];
   return {
@@ -107,6 +127,7 @@ export function validateBrowserDataImport(value: unknown): ValidatedBrowserDataI
     measurements,
     notes,
     attachments,
+    invoices,
     sourceOwnerId: profile?.ownerId ?? null,
   };
 }
@@ -152,4 +173,16 @@ export function validateWorkOrderUpdate(value: unknown): WorkOrderUpdate {
   option(record,"status",WORK_ORDER_STATUSES.map(({value})=>value),"Work Order status");
   if(typeof record.budget!=="number"||typeof record.progress!=="number") throw invalid("Work Order totals are invalid.");
   return record as unknown as WorkOrderUpdate;
+}
+
+export function validateNewInvoiceInput(value: unknown): NewInvoiceInput {
+  const record = object(value, "Invoice");
+  for (const key of ["clientId", "workOrderId"] as const) id(record, key, `Invoice ${key}`);
+  text(record, "description", "Invoice description");
+  const issueDate = text(record, "issueDate", "Invoice issue date");
+  const dueDate = text(record, "dueDate", "Invoice due date");
+  if (!DATE_ONLY.test(issueDate) || !DATE_ONLY.test(dueDate) || dueDate < issueDate) throw invalid("Invoice due date cannot be before its issue date.");
+  option(record, "status", ["draft", "sent", "paid", "overdue"], "Invoice status");
+  if (typeof record.amount !== "number" || !Number.isFinite(record.amount) || record.amount < 0) throw invalid("Invoice amount must be zero or greater.");
+  return record as unknown as NewInvoiceInput;
 }

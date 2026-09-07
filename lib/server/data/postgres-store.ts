@@ -3,14 +3,17 @@ import "server-only";
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
 import { normalizeCompanyProfileInput, type CompanyProfileInput } from "../../company-profile";
 import { categoryLabel } from "../../work-order-options";
+import type { NewInvoiceInput } from "../../types";
 import type { NewClientInput, NewWorkOrderInput, WorkOrderUpdate } from "../../workorder-repository";
 import { DataLayerError, invalid } from "./errors";
 import { analyzeBrowserImport, importCounts } from "./browser-import";
+import { dateOnly } from "./date-only";
 import type { ProductionDataStore } from "./store";
 import type {
   AuthorizedCompanyContext,
   BrowserDataImportResult,
   CompanyClient,
+  CompanyInvoice,
   CompanyMembership,
   CompanyWorkOrder,
   PersistedCompany,
@@ -71,9 +74,19 @@ function workOrder(row: QueryResultRow): CompanyWorkOrder {
     vehicleId: row.vehicle_id ?? undefined, title: row.title, trade: row.trade, tradeDetails: row.trade_details ?? undefined,
     category: row.category, priority: row.priority, serviceAddress: row.service_address,
     description: row.description, internalNotes: row.internal_notes ?? undefined, status: row.status,
-    startDate: String(row.start_date), endDate: String(row.end_date), budget: Number(row.budget),
+    startDate: dateOnly(row.start_date), endDate: dateOnly(row.end_date), budget: Number(row.budget),
     progress: Number(row.progress), crew: row.crew ?? [], createdAt: iso(row.created_at), updatedAt: iso(row.updated_at),
   } as CompanyWorkOrder;
+}
+
+function invoice(row: QueryResultRow): CompanyInvoice {
+  return {
+    id: row.id, companyId: row.company_id, workOrderId: row.work_order_id, clientId: row.client_id ?? row.resolved_client_id,
+    number: row.number, description: row.description ?? "", status: row.status,
+    issueDate: dateOnly(row.issue_date ?? row.issued_at ?? row.created_at), dueDate: dateOnly(row.due_date ?? row.issued_at ?? row.created_at),
+    amount: Number(row.amount ?? 0), amountPaid: Number(row.amount_paid ?? 0),
+    createdAt: iso(row.created_at), updatedAt: iso(row.updated_at),
+  } as CompanyInvoice;
 }
 
 const measurement = (row: QueryResultRow) => ({ id:row.id,companyId:row.company_id,workOrderId:row.work_order_id,type:row.type,label:row.label,value:row.value===null?undefined:Number(row.value),unit:row.unit,width:row.width===null?undefined:Number(row.width),height:row.height===null?undefined:Number(row.height),quantity:Number(row.quantity),notes:row.notes??undefined,createdAt:iso(row.created_at) });
@@ -214,12 +227,52 @@ export class PostgresProductionDataStore implements ProductionDataStore {
     return this.tenant(companyId,async(db)=>{const result=await db.query(`update work_orders set title=$3,trade=$4,category=$5,priority=$6,service_address=$7,description=$8,internal_notes=$9,status=$10,start_date=$11,end_date=$12,budget=$13,progress=$14,updated_at=now() where company_id=$1 and id=$2 returning *`,[companyId,workOrderId,required(input.title,"Title"),input.trade,input.category,input.priority,required(input.serviceAddress,"Service address"),required(input.description,"Description"),input.internalNotes?.trim()||null,input.status,input.startDate,input.endDate,input.budget,input.progress]);return result.rows[0]?workOrder(result.rows[0]):null;});
   }
 
-  private snapshot(db: PoolClient, companyId: string) {
-    return Promise.all([
-      db.query<CompanyRow>("select * from contractor_companies where id=$1",[companyId]), db.query("select * from clients where company_id=$1",[companyId]),
-      db.query("select * from work_orders where company_id=$1",[companyId]), db.query("select * from work_order_measurements where company_id=$1",[companyId]),
-      db.query("select * from work_order_notes where company_id=$1",[companyId]), db.query("select * from work_order_attachments where company_id=$1",[companyId]),
-    ]).then(([companies,clients,workOrders,measurements,notes,attachments]) => companies.rows[0] ? ({ company:company(companies.rows[0]),clients:clients.rows.map(client),workOrders:workOrders.rows.map(workOrder),measurements:measurements.rows.map(measurement),notes:notes.rows.map(note),attachments:attachments.rows.map(attachment) }) : null);
+  listInvoices(companyId: string) {
+    return this.tenant(companyId, async (db) =>
+      (await db.query("select i.*, coalesce(i.client_id,w.client_id) as resolved_client_id from invoices i left join work_orders w on w.company_id=i.company_id and w.id=i.work_order_id where i.company_id=$1 order by i.created_at desc", [companyId])).rows.map(invoice)
+    );
+  }
+
+  createInvoice(companyId: string, input: NewInvoiceInput) {
+    return this.tenant(companyId, async (db) => {
+      if (!Number.isFinite(input.amount) || input.amount < 0) throw invalid("Invoice amount must be zero or greater.");
+      if (input.dueDate < input.issueDate) throw invalid("Invoice due date cannot be before its issue date.");
+      const relationship = await db.query(
+        "select 1 from work_orders where company_id=$1 and id=$2 and client_id=$3",
+        [companyId, input.workOrderId, input.clientId]
+      );
+      if (!relationship.rowCount) throw invalid("Select a valid client and Work Order.");
+
+      const year = input.issueDate.slice(0, 4);
+      await db.query("select pg_advisory_xact_lock(hashtext($1))", [`quotiq-invoice:${companyId}:${year}`]);
+      const sequence = await db.query<{ next: number }>(
+        "select coalesce(max(substring(number from '([0-9]+)$')::integer),0)+1 as next from invoices where company_id=$1 and number like $2",
+        [companyId, `INV-${year}-%`]
+      );
+      const number = `INV-${year}-${String(sequence.rows[0].next).padStart(4, "0")}`;
+      const amountPaid = input.status === "paid" ? input.amount : 0;
+      const result = await db.query(
+        `insert into invoices (company_id,id,work_order_id,client_id,number,status,description,issue_date,due_date,amount,amount_paid,issued_at,created_at,updated_at)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$8,now(),now()) returning *`,
+        [companyId,id(),input.workOrderId,input.clientId,number,input.status,required(input.description,"Description"),input.issueDate,input.dueDate,input.amount,amountPaid]
+      );
+      return invoice(result.rows[0]);
+    });
+  }
+
+  private async snapshot(db: PoolClient, companyId: string) {
+    const companies = await db.query<CompanyRow>("select * from contractor_companies where id=$1", [companyId]);
+    const clients = await db.query("select * from clients where company_id=$1", [companyId]);
+    const workOrders = await db.query("select * from work_orders where company_id=$1", [companyId]);
+    const measurements = await db.query("select * from work_order_measurements where company_id=$1", [companyId]);
+    const notes = await db.query("select * from work_order_notes where company_id=$1", [companyId]);
+    const attachments = await db.query("select * from work_order_attachments where company_id=$1", [companyId]);
+    const invoices = await db.query("select i.*, coalesce(i.client_id,w.client_id) as resolved_client_id from invoices i left join work_orders w on w.company_id=i.company_id and w.id=i.work_order_id where i.company_id=$1", [companyId]);
+    return companies.rows[0] ? {
+      company: company(companies.rows[0]), clients: clients.rows.map(client), workOrders: workOrders.rows.map(workOrder),
+      measurements: measurements.rows.map(measurement), notes: notes.rows.map(note), attachments: attachments.rows.map(attachment),
+      invoices: invoices.rows.map(invoice),
+    } : null;
   }
 
   getCompanyDataSnapshot(companyId: string) { return this.tenant(companyId, (db) => this.snapshot(db,companyId)); }
@@ -239,6 +292,7 @@ export class PostgresProductionDataStore implements ProductionDataStore {
       for(const item of data.measurements) await db.query(`insert into work_order_measurements (company_id,id,work_order_id,type,label,value,unit,width,height,quantity,notes,created_at) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,[companyId,item.id,item.workOrderId,item.type,item.label,item.value??null,item.unit,item.width??null,item.height??null,item.quantity,item.notes??null,item.createdAt]);
       for(const item of data.notes) await db.query(`insert into work_order_notes (company_id,id,work_order_id,body,visibility,created_at,updated_at) values ($1,$2,$3,$4,$5,$6,$7)`,[companyId,item.id,item.workOrderId,item.body,item.visibility,item.createdAt,item.updatedAt]);
       for(const item of data.attachments) await db.query(`insert into work_order_attachments (company_id,id,work_order_id,kind,storage_key,file_name,mime_type,size_bytes,caption,description,uploaded_at) values ($1,$2,$3,$4,null,$5,$6,$7,$8,$9,$10)`,[companyId,item.id,item.workOrderId,item.kind,item.fileName,item.mimeType,item.size,item.caption??null,item.description??null,item.uploadedAt]);
+      for(const item of data.invoices) await db.query(`insert into invoices (company_id,id,work_order_id,client_id,number,status,description,issue_date,due_date,amount,amount_paid,issued_at,created_at,updated_at) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$8,$12,$12)`,[companyId,item.id,item.workOrderId,item.clientId,item.number,item.status,item.description,item.issueDate,item.dueDate,item.amount,item.amountPaid,item.createdAt]);
       const verified=await this.snapshot(db,companyId);if(!verified||analyzeBrowserImport(verified,data)!=="already_imported") throw new DataLayerError("CONFLICT","Imported data could not be verified.");
       return {companyId,imported:importCounts(data),verifiedAt:new Date().toISOString(),localDataRetained:true,idempotentReplay:false};
     });

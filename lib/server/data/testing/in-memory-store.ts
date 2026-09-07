@@ -1,5 +1,6 @@
 import { normalizeCompanyProfileInput, type CompanyProfileInput } from "../../../company-profile";
 import { categoryLabel } from "../../../work-order-options";
+import type { NewInvoiceInput } from "../../../types";
 import type { NewClientInput, NewWorkOrderInput, WorkOrderUpdate } from "../../../workorder-repository";
 import type { CompanyAttachment, CompanyMeasurement, CompanyNote } from "../types";
 import { DataLayerError, invalid } from "../errors";
@@ -9,6 +10,7 @@ import type {
   AuthorizedCompanyContext,
   BrowserDataImportResult,
   CompanyClient,
+  CompanyInvoice,
   CompanyMembership,
   CompanyWorkOrder,
   PersistedCompany,
@@ -31,6 +33,7 @@ export class InMemoryProductionDataStore implements ProductionDataStore {
   private readonly measurements = new Map<string, CompanyMeasurement>();
   private readonly notes = new Map<string, CompanyNote>();
   private readonly attachments = new Map<string, CompanyAttachment>();
+  private readonly invoices = new Map<string, CompanyInvoice>();
 
   constructor(
     private readonly createId: () => string = () => crypto.randomUUID(),
@@ -136,13 +139,34 @@ export class InMemoryProductionDataStore implements ProductionDataStore {
     return saved;
   }
 
+  async listInvoices(companyId: string) { return [...this.invoices.values()].filter((item) => item.companyId === companyId); }
+  async createInvoice(companyId: string, input: NewInvoiceInput) {
+    const workOrder = await this.getWorkOrder(companyId, input.workOrderId);
+    if (!workOrder || workOrder.clientId !== input.clientId) throw invalid("Select a valid client and Work Order.");
+    if (!Number.isFinite(input.amount) || input.amount < 0) throw invalid("Invoice amount must be zero or greater.");
+    if (input.dueDate < input.issueDate) throw invalid("Invoice due date cannot be before its issue date.");
+    const timestamp = this.now();
+    const year = input.issueDate.slice(0, 4);
+    const next = (await this.listInvoices(companyId)).filter((item) => item.number.startsWith(`INV-${year}-`)).length + 1;
+    const saved: CompanyInvoice = {
+      id: this.createId(), companyId, workOrderId: input.workOrderId, clientId: input.clientId,
+      number: `INV-${year}-${String(next).padStart(4, "0")}`, description: required(input.description, "Description"),
+      issueDate: input.issueDate, dueDate: input.dueDate, amount: input.amount,
+      amountPaid: input.status === "paid" ? input.amount : 0, status: input.status,
+      createdAt: timestamp, updatedAt: timestamp,
+    };
+    this.invoices.set(key(companyId, saved.id), saved);
+    return saved;
+  }
+
   async getCompanyDataSnapshot(companyId: string) {
     const company = await this.getCompany(companyId);
     if (!company) return null;
     return { company, clients: await this.listClients(companyId), workOrders: await this.listWorkOrders(companyId),
       measurements: [...this.measurements.values()].filter((item) => item.companyId === companyId),
       notes: [...this.notes.values()].filter((item) => item.companyId === companyId),
-      attachments: [...this.attachments.values()].filter((item) => item.companyId === companyId) };
+      attachments: [...this.attachments.values()].filter((item) => item.companyId === companyId),
+      invoices: await this.listInvoices(companyId) };
   }
 
   async previewBrowserDataImport(companyId: string, data: ValidatedBrowserDataImport) {
@@ -161,6 +185,7 @@ export class InMemoryProductionDataStore implements ProductionDataStore {
     data.measurements.forEach((item) => this.measurements.set(key(companyId, item.id), { ...item, companyId }));
     data.notes.forEach((item) => this.notes.set(key(companyId, item.id), { ...item, companyId }));
     data.attachments.forEach((item) => this.attachments.set(key(companyId, item.id), { ...item, companyId }));
+    data.invoices.forEach((item) => this.invoices.set(key(companyId, item.id), { ...item, companyId, updatedAt: timestamp }));
     const verified = await this.getCompanyDataSnapshot(companyId);
     if (!verified || analyzeBrowserImport(verified, data) !== "already_imported") throw new DataLayerError("CONFLICT", "Imported data could not be verified.");
     return { companyId, imported: importCounts(data), verifiedAt: timestamp, localDataRetained: true, idempotentReplay: false };

@@ -63,6 +63,29 @@ describe("production tenant data service", () => {
     await expect(alpha.createWorkOrder(workOrderInput(bravoClient.id))).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
+  it("persists invoices inside one company and rejects cross-company relationships", async () => {
+    await store.createCompanyWithOwner(companyProfileDefaults("Alpha"), "user_alpha", "org_alpha");
+    await store.createCompanyWithOwner(companyProfileDefaults("Bravo"), "user_bravo", "org_bravo");
+    const alpha = new TenantDataService(store, await resolveAuthorizedCompany(store, { clerkUserId: "user_alpha", clerkOrganizationId: "org_alpha" }));
+    const bravo = new TenantDataService(store, await resolveAuthorizedCompany(store, { clerkUserId: "user_bravo", clerkOrganizationId: "org_bravo" }));
+    const alphaClient = await alpha.createClient(clientInput("Alpha"));
+    const alphaWorkOrder = await alpha.createWorkOrder(workOrderInput(alphaClient.id));
+    const invoiceInput = {
+      clientId: alphaClient.id,
+      workOrderId: alphaWorkOrder.id,
+      description: "Exterior painting deposit",
+      issueDate: "2026-09-07",
+      dueDate: "2026-09-21",
+      amount: 750,
+      status: "sent" as const,
+    };
+
+    const invoice = await alpha.createInvoice(invoiceInput);
+    expect(await alpha.listInvoices()).toEqual([expect.objectContaining({ id: invoice.id, amount: 750, companyId: alpha.context.companyId })]);
+    expect(await bravo.listInvoices()).toEqual([]);
+    await expect(bravo.createInvoice(invoiceInput)).rejects.toMatchObject({ code: "VALIDATION" });
+  });
+
   it("rejects invalid record IDs before querying storage", async () => {
     await store.createCompanyWithOwner(companyProfileDefaults("Alpha"), "user_alpha", null);
     const service = new TenantDataService(store, await resolveAuthorizedCompany(store, { clerkUserId: "user_alpha", clerkOrganizationId: null }));
@@ -86,11 +109,13 @@ describe("production tenant data service", () => {
       workOrders: [{ id: "work_local_1", clientId: "client_local_1", title: "Local job", trade: "painting", category: "maintenance", priority: "medium", serviceAddress: "1 Main St", description: "Paint", status: "scheduled", startDate: "2026-09-01", endDate: "2026-09-01", budget: 0, progress: 0, crew: [] }],
       measurements: [{ id: "measurement_local_1", workOrderId: "work_local_1", type: "area", label: "Wall", value: 100, unit: "sq ft", quantity: 1, createdAt: timestamp }],
       notes: [], attachments: [],
+      invoices: [{ id: "invoice_local_1", workOrderId: "work_local_1", clientId: "client_local_1", number: "INV-2026-0001", description: "Imported work", issueDate: "2026-09-01", dueDate: "2026-09-15", amount: 500, amountPaid: 0, status: "sent", createdAt: timestamp }],
     };
     const result = await service.importBrowserData(payload);
-    expect(result).toMatchObject({ localDataRetained: true, imported: { clients: 1, workOrders: 1, measurements: 1 } });
+    expect(result).toMatchObject({ localDataRetained: true, imported: { clients: 1, workOrders: 1, measurements: 1, invoices: 1 } });
     expect((await service.getClient("client_local_1")).id).toBe("client_local_1");
     expect((await service.getWorkOrder("work_local_1")).clientId).toBe("client_local_1");
+    expect(await service.listInvoices()).toEqual([expect.objectContaining({ id: "invoice_local_1", clientId: "client_local_1" })]);
     const replay = await service.importBrowserData(payload);
     expect(replay).toMatchObject({ idempotentReplay: true, localDataRetained: true, imported: { clients: 1, workOrders: 1 } });
     expect(await service.listClients()).toHaveLength(1);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useCloudClients, useCloudInvoices, useCloudWorkOrders } from "@/components/auth/CloudDataProvider";
 import { cn } from "@/lib/utils";
 import { generateAssistantReply, suggestedPrompts } from "@/lib/assistant";
 import { IconSend, IconSparkles } from "@/components/icons";
@@ -16,11 +17,14 @@ const initialMessages: Message[] = [
     id: "welcome",
     role: "assistant",
     content:
-      "Welcome to Quotiq AI. Your estimating assistant is in beta and will become more useful as you add clients and work orders.",
+      "Hi — I’m Quotiq AI. I can help from anywhere in the app with your clients, Work Orders, invoices, and estimate drafts.",
   },
 ];
 
-export function AssistantChat() {
+export function AssistantChat({ compact = false }: { compact?: boolean }) {
+  const { clients } = useCloudClients();
+  const { workOrders } = useCloudWorkOrders();
+  const { invoices } = useCloudInvoices();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
@@ -56,7 +60,7 @@ export function AssistantChat() {
       const reply: Message = {
         id: createId("assistant"),
         role: "assistant",
-        content: generateAssistantReply(trimmed),
+        content: generateAssistantReply(trimmed, { clients, workOrders, invoices }),
       };
       setMessages((prev) => [...prev, reply]);
       setIsThinking(false);
@@ -65,7 +69,7 @@ export function AssistantChat() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-11rem)] min-h-[420px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className={cn("flex flex-col overflow-hidden border border-slate-200 bg-white shadow-sm", compact ? "h-[min(34rem,calc(100vh-8rem))] rounded-xl" : "h-[calc(100vh-11rem)] min-h-[420px] rounded-2xl")}>
       <div ref={listRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
         {messages.map((message) => (
           <div

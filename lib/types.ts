@@ -198,6 +198,22 @@ export interface Invoice {
   amountPaid: number;
 }
 
+export interface SavedInvoice extends Invoice {
+  clientId: string;
+  description: string;
+  createdAt: string;
+}
+
+export interface NewInvoiceInput {
+  workOrderId: string;
+  clientId: string;
+  description: string;
+  issueDate: string;
+  dueDate: string;
+  amount: number;
+  status: InvoiceStatus;
+}
+
 export interface Photo {
   id: string;
   workOrderId: string;

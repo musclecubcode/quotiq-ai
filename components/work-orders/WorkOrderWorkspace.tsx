@@ -10,8 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/Field";
 import { PriorityBadge, WorkOrderStatusBadge } from "@/components/ui/Badge";
-import { useClient } from "@/lib/client-storage";
-import { useWorkOrderRecord } from "@/lib/workorder-storage";
+import { useCloudClient, useCloudWorkOrder } from "@/components/auth/CloudDataProvider";
 import {
   TRADE_CATEGORIES,
   WORK_ORDER_CATEGORIES,
@@ -20,7 +19,6 @@ import {
   categoryLabel,
   tradeLabel,
 } from "@/lib/work-order-options";
-import { RepositoryError } from "@/lib/workorder-repository";
 import { formatCurrency, formatDate, getClientFullName } from "@/lib/utils";
 import type {
   TradeCategory,
@@ -33,11 +31,12 @@ import { useJobIntelligence } from "@/lib/job-intelligence-repository";
 const WORKSPACE_TABS = ["overview", "photos", "measurements", "notes", "documents"] as const;
 
 export function WorkOrderWorkspace({ workOrderId }: { workOrderId: string }) {
-  const { workOrder, updateWorkOrder } = useWorkOrderRecord(workOrderId);
-  const { client } = useClient(workOrder?.clientId ?? "");
+  const { workOrder, updateWorkOrder } = useCloudWorkOrder(workOrderId);
+  const { client } = useCloudClient(workOrder?.clientId ?? "");
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [activeTab, setActiveTab] = useState<(typeof WORKSPACE_TABS)[number]>("overview");
   const intelligence = useJobIntelligence(workOrderId);
 
@@ -57,14 +56,15 @@ export function WorkOrderWorkspace({ workOrderId }: { workOrderId: string }) {
     );
   }
 
-  function handleSave(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setSaved(false);
     const data = new FormData(event.currentTarget);
     const get = (key: string) => String(data.get(key) ?? "").trim();
+    setBusy(true);
     try {
-      updateWorkOrder(workOrderId, {
+      await updateWorkOrder(workOrderId, {
         title: get("title"),
         trade: get("trade") as TradeCategory,
         category: get("category") as WorkOrderCategory,
@@ -81,7 +81,9 @@ export function WorkOrderWorkspace({ workOrderId }: { workOrderId: string }) {
       setEditing(false);
       setSaved(true);
     } catch (caught) {
-      setError(caught instanceof RepositoryError ? caught.message : "Unable to save this Work Order.");
+      setError(caught instanceof Error ? caught.message : "Unable to save this Work Order.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -143,8 +145,8 @@ export function WorkOrderWorkspace({ workOrderId }: { workOrderId: string }) {
             </Field>
             {error && <p role="alert" className="text-sm text-red-600 sm:col-span-2">{error}</p>}
             <div className="flex gap-3 sm:col-span-2">
-              <Button type="submit">Save Work Order</Button>
-              <Button type="button" variant="secondary" onClick={() => { setEditing(false); setError(null); }}>Cancel</Button>
+              <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Save Work Order"}</Button>
+              <Button type="button" variant="secondary" disabled={busy} onClick={() => { setEditing(false); setError(null); }}>Cancel</Button>
             </div>
           </form>
         </Card>

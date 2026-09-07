@@ -2,12 +2,19 @@ import {
   getClientById,
   getQuoteTotal,
   getWorkOrderById,
-  invoices,
+  invoices as sampleInvoices,
   quotes,
-  workOrders,
+  workOrders as sampleWorkOrders,
 } from "./data";
 import { formatCurrency, formatDate, getClientFullName } from "./utils";
 import { isDemoModeEnabled } from "./demo-mode";
+import type { Client, SavedInvoice, WorkOrder } from "./types";
+
+export interface AssistantContext {
+  clients: Client[];
+  workOrders: WorkOrder[];
+  invoices: SavedInvoice[];
+}
 
 export const suggestedPrompts = [
   "Which invoices are overdue?",
@@ -21,10 +28,11 @@ export const suggestedPrompts = [
  * Answers are derived from the same mock data backing the dashboard
  * so the assistant stays consistent with what a contractor sees elsewhere.
  */
-export function generateAssistantReply(input: string): string {
-  if (!isDemoModeEnabled) {
-    return "The AI assistant is still in preview and is not connected to your workspace data yet. You can start by adding a client and creating a Work Order.";
-  }
+export function generateAssistantReply(input: string, context?: AssistantContext): string {
+  const workOrders = context?.workOrders ?? sampleWorkOrders;
+  const invoices = context?.invoices ?? sampleInvoices;
+  const clientFor = (clientId: string) => context?.clients.find((client) => client.id === clientId) ?? getClientById(clientId);
+  if (!context && !isDemoModeEnabled) return "Open the assistant from your signed-in workspace so I can use your company records.";
   const text = input.toLowerCase();
 
   if (text.includes("overdue")) {
@@ -33,8 +41,8 @@ export function generateAssistantReply(input: string): string {
       return "Nice — there are no overdue invoices right now.";
     }
     const lines = overdue.map((invoice) => {
-      const workOrder = getWorkOrderById(invoice.workOrderId);
-      const client = workOrder ? getClientById(workOrder.clientId) : undefined;
+      const workOrder = workOrders.find((item) => item.id === invoice.workOrderId);
+      const client = workOrder ? clientFor(workOrder.clientId) : undefined;
       return `• ${invoice.number} — ${client && getClientFullName(client)} — ${formatCurrency(
         invoice.amount - invoice.amountPaid
       )} past due since ${formatDate(invoice.dueDate)}`;
@@ -51,7 +59,7 @@ export function generateAssistantReply(input: string): string {
       return "All active work orders are on track — nothing is on hold right now.";
     }
     const lines = atRisk.map((workOrder) => {
-      const client = getClientById(workOrder.clientId);
+      const client = clientFor(workOrder.clientId);
       return `• ${workOrder.title} for ${client && getClientFullName(client)} — on hold at ${workOrder.progress}% complete`;
     });
     return `These work orders need attention:\n${lines.join("\n")}`;
@@ -82,6 +90,7 @@ export function generateAssistantReply(input: string): string {
   }
 
   if (text.includes("pending") && text.includes("estimate")) {
+    if (context) return "There are no server-backed estimates in your company workspace yet. Estimate persistence is the next billing milestone.";
     const pending = quotes.filter((quote) => quote.status === "sent");
     if (pending.length === 0) {
       return "No estimates are currently awaiting a response.";
@@ -94,6 +103,14 @@ export function generateAssistantReply(input: string): string {
       )}, expires ${formatDate(quote.expiryDate)}`;
     });
     return `${pending.length} estimate(s) awaiting a response:\n${lines.join("\n")}`;
+  }
+
+  if (text.includes("client") || text.includes("work order") || text.includes("invoice") || text.includes("workspace")) {
+    const active = workOrders.filter((item) => item.status === "scheduled" || item.status === "in_progress").length;
+    const outstanding = invoices
+      .filter((item) => item.status === "sent" || item.status === "overdue")
+      .reduce((total, item) => total + item.amount - item.amountPaid, 0);
+    return `Your company workspace currently has ${context?.clients.length ?? 0} client(s), ${active} active Work Order(s), and ${formatCurrency(outstanding)} in outstanding invoices.`;
   }
 
   return 'I can help draft estimates, summarize overdue invoices, or flag work orders that are behind schedule. Try asking "Which invoices are overdue?" or "Draft an estimate for a bathroom remodel."';

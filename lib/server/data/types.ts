@@ -1,6 +1,7 @@
 import type {
   Client,
   CompanyProfile,
+  SavedInvoice,
   WorkOrder,
   WorkOrderAttachment,
   WorkOrderMeasurement,
@@ -38,6 +39,7 @@ export interface CompanyWorkOrder extends WorkOrder {
 export interface CompanyMeasurement extends WorkOrderMeasurement { companyId: string }
 export interface CompanyNote extends WorkOrderNote { companyId: string }
 export interface CompanyAttachment extends WorkOrderAttachment { companyId: string }
+export interface CompanyInvoice extends SavedInvoice { companyId: string; updatedAt: string }
 
 export interface BrowserDataImport {
   version: 1;
@@ -47,6 +49,7 @@ export interface BrowserDataImport {
   measurements: WorkOrderMeasurement[];
   notes: WorkOrderNote[];
   attachments: WorkOrderAttachment[];
+  invoices: SavedInvoice[];
 }
 
 export interface ValidatedBrowserDataImport extends BrowserDataImport {
@@ -61,6 +64,7 @@ export interface BrowserDataImportResult {
     measurements: number;
     notes: number;
     attachments: number;
+    invoices: number;
   };
   verifiedAt: string;
   localDataRetained: true;
@@ -80,6 +84,7 @@ export interface CompanyDataSnapshot {
   measurements: CompanyMeasurement[];
   notes: CompanyNote[];
   attachments: CompanyAttachment[];
+  invoices: CompanyInvoice[];
 }
 
 export interface AuthenticatedIdentity {

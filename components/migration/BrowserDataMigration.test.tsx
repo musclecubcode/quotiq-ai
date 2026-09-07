@@ -13,8 +13,8 @@ describe("BrowserDataMigration", () => {
   it("previews explicitly, imports only after confirmation, and retains local browser data", async () => {
     localStorage.setItem("quotiq.clients.user", "important-local-copy");
     const fetchMock = vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({ status: "ready", records: { clients:0,workOrders:0,measurements:0,notes:0,attachments:0 }, localDataRetained:true }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ imported: { clients:0,workOrders:0,measurements:0,notes:0,attachments:0 }, verifiedAt:"2026-09-04T12:00:00.000Z", localDataRetained:true, idempotentReplay:false }), { status: 200 }));
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: "ready", records: { clients:0,workOrders:0,measurements:0,notes:0,attachments:0,invoices:0 }, localDataRetained:true }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ imported: { clients:0,workOrders:0,measurements:0,notes:0,attachments:0,invoices:0 }, verifiedAt:"2026-09-04T12:00:00.000Z", localDataRetained:true, idempotentReplay:false }), { status: 200 }));
     const user = userEvent.setup();
     render(<BrowserDataMigration />);
     await user.click(screen.getByRole("button", { name: "Preview browser data" }));

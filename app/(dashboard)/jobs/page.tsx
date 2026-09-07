@@ -7,15 +7,14 @@ import { Card } from "@/components/ui/Card";
 import { PriorityBadge, WorkOrderStatusBadge } from "@/components/ui/Badge";
 import { Table, TableHead, TableBody, Th, Tr, Td } from "@/components/ui/Table";
 import { IconPlus } from "@/components/icons";
-import { useClients } from "@/lib/client-storage";
-import { useStoredWorkOrders } from "@/lib/workorder-storage";
+import { useCloudClients, useCloudWorkOrders } from "@/components/auth/CloudDataProvider";
 import { categoryLabel, tradeLabel } from "@/lib/work-order-options";
 import { formatCurrency, formatDate, getClientFullName } from "@/lib/utils";
 import type { Client } from "@/lib/types";
 
 export default function JobsPage() {
-  const { clients } = useClients();
-  const { workOrders: repositoryWorkOrders } = useStoredWorkOrders();
+  const { clients } = useCloudClients();
+  const { workOrders: repositoryWorkOrders } = useCloudWorkOrders();
 
   const clientsById = new Map<string, Client>();
   for (const client of clients) clientsById.set(client.id, client);

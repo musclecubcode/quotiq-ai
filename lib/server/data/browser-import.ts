@@ -7,6 +7,7 @@ export const importCounts = (data: ValidatedBrowserDataImport): BrowserDataImpor
   measurements: data.measurements.length,
   notes: data.notes.length,
   attachments: data.attachments.length,
+  invoices: data.invoices.length,
 });
 
 const select = <T extends { id: string }>(records: T[], ids: Set<string>) => records.filter((item) => ids.has(item.id));
@@ -27,6 +28,9 @@ function noteValue(item: CompanyDataSnapshot["notes"][number] | ValidatedBrowser
 function attachmentValue(item: CompanyDataSnapshot["attachments"][number] | ValidatedBrowserDataImport["attachments"][number]) {
   return { id:item.id,workOrderId:item.workOrderId,kind:item.kind,fileName:item.fileName,mimeType:item.mimeType,size:item.size,caption:item.caption??null,description:item.description??null,uploadedAt:item.uploadedAt };
 }
+function invoiceValue(item: CompanyDataSnapshot["invoices"][number] | ValidatedBrowserDataImport["invoices"][number]) {
+  return { id:item.id,number:item.number,workOrderId:item.workOrderId,clientId:item.clientId,description:item.description,issueDate:item.issueDate,dueDate:item.dueDate,amount:item.amount,amountPaid:item.amountPaid,status:item.status,createdAt:item.createdAt };
+}
 
 function same<T>(left: T[], right: T[], value: (item: T) => unknown) {
   const sort = (items: T[]) => items.map(value).sort((a, b) => String((a as { id: string }).id).localeCompare(String((b as { id: string }).id)));
@@ -39,10 +43,12 @@ export function analyzeBrowserImport(snapshot: CompanyDataSnapshot, data: Valida
   const measurementIds = new Set(data.measurements.map((item) => item.id));
   const noteIds = new Set(data.notes.map((item) => item.id));
   const attachmentIds = new Set(data.attachments.map((item) => item.id));
+  const invoiceIds = new Set(data.invoices.map((item) => item.id));
   const existing = {
     clients: select(snapshot.clients, clientIds), workOrders: select(snapshot.workOrders, workOrderIds),
     measurements: select(snapshot.measurements, measurementIds), notes: select(snapshot.notes, noteIds),
     attachments: select(snapshot.attachments, attachmentIds),
+    invoices: select(snapshot.invoices, invoiceIds),
   };
   const existingCount = Object.values(existing).reduce((total, records) => total + records.length, 0);
   const expectedCount = Object.values(importCounts(data)).reduce((total, count) => total + count, 0);
@@ -52,7 +58,8 @@ export function analyzeBrowserImport(snapshot: CompanyDataSnapshot, data: Valida
     && same(existing.workOrders, data.workOrders, workOrderValue)
     && same(existing.measurements, data.measurements, measurementValue)
     && same(existing.notes, data.notes, noteValue)
-    && same(existing.attachments, data.attachments, attachmentValue);
+    && same(existing.attachments, data.attachments, attachmentValue)
+    && same(existing.invoices, data.invoices, invoiceValue);
   if (exact) return "already_imported";
   throw new DataLayerError("CONFLICT", "Import conflicts with existing company data. No records were changed.");
 }

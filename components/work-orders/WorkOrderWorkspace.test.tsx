@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CloudDataProvider } from "@/components/auth/CloudDataProvider";
 import { WorkOrderWorkspace } from "./WorkOrderWorkspace";
 import {
   createClient,
   createWorkOrder,
-  getWorkOrder,
   resetRepositoryCacheForTests,
 } from "@/lib/workorder-repository";
 
@@ -41,7 +41,11 @@ describe("WorkOrderWorkspace", () => {
       scheduledDate: "2026-09-01",
     });
 
-    render(<WorkOrderWorkspace workOrderId={workOrder.id} />);
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(async (_path, init: RequestInit) => {
+      const input = JSON.parse(String(init.body));
+      return new Response(JSON.stringify({ ...workOrder, ...input }), { status: 200 });
+    }));
+    render(<CloudDataProvider initialData={{ clients: [client], workOrders: [workOrder], invoices: [] }}><WorkOrderWorkspace workOrderId={workOrder.id} /></CloudDataProvider>);
     expect(screen.getByText("Morgan Hill")).toBeInTheDocument();
     expect(screen.getByText("Paint the exterior trim.")).toBeInTheDocument();
 
@@ -55,11 +59,11 @@ describe("WorkOrderWorkspace", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("Work Order saved.");
     expect(screen.getByRole("heading", { name: "Exterior Trim Painting" })).toBeInTheDocument();
-    expect(getWorkOrder(workOrder.id)).toMatchObject({ status: "in_progress", budget: 1800 });
+    expect(fetch).toHaveBeenCalledWith(`/api/data/work-orders/${workOrder.id}`, expect.objectContaining({ method: "PATCH" }));
   });
 
   it("shows a clear state for a missing Work Order", () => {
-    render(<WorkOrderWorkspace workOrderId="missing-work-order" />);
+    render(<CloudDataProvider initialData={{ clients: [], workOrders: [], invoices: [] }}><WorkOrderWorkspace workOrderId="missing-work-order" /></CloudDataProvider>);
     expect(screen.getByRole("heading", { name: "Work Order not found" })).toBeInTheDocument();
   });
 });

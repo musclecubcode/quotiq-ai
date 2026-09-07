@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { cn, getInitials } from "@/lib/utils";
 import { navItems } from "./nav-items";
 import { NotificationsMenu } from "./NotificationsMenu";
+import { FloatingAssistant } from "@/components/ai/FloatingAssistant";
 import { IconMenu, IconSearch, IconX } from "@/components/icons";
 import { UserButton } from "@clerk/nextjs";
 
@@ -170,6 +171,7 @@ export function DashboardShell({ children, userName, companyName }: { children: 
 
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
+      <FloatingAssistant />
     </div>
   );
 }

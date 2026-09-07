@@ -1,4 +1,5 @@
 import type { CompanyProfileInput } from "../../company-profile";
+import type { NewInvoiceInput } from "../../types";
 import type { NewClientInput, NewWorkOrderInput, WorkOrderUpdate } from "../../workorder-repository";
 import type {
   AuthorizedCompanyContext,
@@ -6,6 +7,7 @@ import type {
   BrowserDataImportPreview,
   CompanyDataSnapshot,
   CompanyClient,
+  CompanyInvoice,
   CompanyMembership,
   CompanyWorkOrder,
   PersistedCompany,
@@ -33,6 +35,9 @@ export interface ProductionDataStore {
   getWorkOrder(companyId: string, workOrderId: string): Promise<CompanyWorkOrder | null>;
   createWorkOrder(companyId: string, input: NewWorkOrderInput): Promise<CompanyWorkOrder>;
   updateWorkOrder(companyId: string, workOrderId: string, input: WorkOrderUpdate): Promise<CompanyWorkOrder | null>;
+
+  listInvoices(companyId: string): Promise<CompanyInvoice[]>;
+  createInvoice(companyId: string, input: NewInvoiceInput): Promise<CompanyInvoice>;
 
   previewBrowserDataImport(companyId: string, data: ValidatedBrowserDataImport): Promise<BrowserDataImportPreview>;
   importBrowserData(companyId: string, data: ValidatedBrowserDataImport): Promise<BrowserDataImportResult>;

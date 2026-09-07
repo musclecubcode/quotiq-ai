@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CloudDataProvider } from "@/components/auth/CloudDataProvider";
 import { CreateWorkOrderForm } from "./CreateWorkOrderForm";
 import { createClient, resetRepositoryCacheForTests } from "@/lib/workorder-repository";
 
@@ -13,8 +14,7 @@ describe("CreateWorkOrderForm", () => {
     resetRepositoryCacheForTests();
     push.mockReset();
     vi.spyOn(globalThis.crypto, "randomUUID")
-      .mockReturnValueOnce("30000000-0000-4000-8000-000000000003")
-      .mockReturnValueOnce("40000000-0000-4000-8000-000000000004");
+      .mockReturnValueOnce("30000000-0000-4000-8000-000000000003");
   });
 
   it("creates a Work Order and redirects directly to its dynamic route", async () => {
@@ -29,7 +29,24 @@ describe("CreateWorkOrderForm", () => {
       state: "TX",
       zip: "78702",
     });
-    render(<CreateWorkOrderForm />);
+    const savedWorkOrder = {
+      id: "40000000-0000-4000-8000-000000000004",
+      clientId: client.id,
+      title: "Repair — 22 Pine St, Austin, TX",
+      trade: "handyman" as const,
+      category: "repair" as const,
+      priority: "medium" as const,
+      serviceAddress: "22 Pine St, Austin, TX",
+      description: "Repair damaged trim.",
+      status: "scheduled" as const,
+      startDate: "2026-08-10",
+      endDate: "2026-08-10",
+      budget: 0,
+      progress: 0,
+      crew: [],
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(savedWorkOrder), { status: 201 })));
+    render(<CloudDataProvider initialData={{ clients: [client], workOrders: [], invoices: [] }}><CreateWorkOrderForm /></CloudDataProvider>);
 
     await user.selectOptions(screen.getByLabelText("Client"), client.id);
     await user.type(screen.getByLabelText("Service Address"), "22 Pine St, Austin, TX");
@@ -39,6 +56,7 @@ describe("CreateWorkOrderForm", () => {
     await user.type(screen.getByLabelText("Description"), "Repair damaged trim.");
     await user.click(screen.getByRole("button", { name: "Create Work Order" }));
 
-    expect(push).toHaveBeenCalledWith("/jobs/40000000-0000-4000-8000-000000000004");
+    expect(push).toHaveBeenCalledWith(`/jobs/${savedWorkOrder.id}`);
+    expect(fetch).toHaveBeenCalledWith("/api/data/work-orders", expect.objectContaining({ method: "POST" }));
   });
 });

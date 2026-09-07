@@ -5,25 +5,25 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/Field";
-import { useClients } from "@/lib/client-storage";
-import { useWorkOrdersRepository } from "@/lib/workorder-repository";
-import { useInvoicesRepository, type SavedInvoiceStatus } from "@/lib/invoice-repository";
+import { useCloudClients, useCloudInvoices, useCloudWorkOrders } from "@/components/auth/CloudDataProvider";
+import type { SavedInvoiceStatus } from "@/lib/invoice-repository";
 import { getClientFullName } from "@/lib/utils";
 
 export function CreateInvoiceForm() {
   const router = useRouter();
-  const { clients } = useClients();
-  const { workOrders } = useWorkOrdersRepository();
-  const { addInvoice } = useInvoicesRepository();
+  const { clients } = useCloudClients();
+  const { workOrders } = useCloudWorkOrders();
+  const { addInvoice } = useCloudInvoices();
   const [clientId, setClientId] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const availableWorkOrders = useMemo(
     () => workOrders.filter((workOrder) => !clientId || workOrder.clientId === clientId),
     [workOrders, clientId]
   );
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
 
@@ -33,7 +33,8 @@ export function CreateInvoiceForm() {
     const status = get("status") as SavedInvoiceStatus;
 
     try {
-      addInvoice({
+      setBusy(true);
+      await addInvoice({
         clientId: get("clientId"),
         workOrderId: get("workOrderId"),
         description: get("description"),
@@ -45,6 +46,8 @@ export function CreateInvoiceForm() {
       router.push("/invoices");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create invoice.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -114,11 +117,11 @@ export function CreateInvoiceForm() {
           />
         </Field>
 
-        {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
+        {error && <p role="alert" className="text-sm text-red-600 sm:col-span-2">{error}</p>}
 
         <div className="flex gap-3 sm:col-span-2">
-          <Button type="submit">Create Invoice</Button>
-          <Button type="button" variant="secondary" onClick={() => router.push("/invoices")}>Cancel</Button>
+          <Button type="submit" disabled={busy}>{busy ? "Creating…" : "Create Invoice"}</Button>
+          <Button type="button" variant="secondary" disabled={busy} onClick={() => router.push("/invoices")}>Cancel</Button>
         </div>
       </form>
     </Card>

@@ -1,32 +1,10 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import type { NewInvoiceInput, SavedInvoice } from "./types";
 
-export type SavedInvoiceStatus = "draft" | "sent" | "paid" | "overdue";
-
-export interface SavedInvoice {
-  id: string;
-  number: string;
-  workOrderId: string;
-  clientId: string;
-  description: string;
-  issueDate: string;
-  dueDate: string;
-  amount: number;
-  amountPaid: number;
-  status: SavedInvoiceStatus;
-  createdAt: string;
-}
-
-export interface NewInvoiceInput {
-  workOrderId: string;
-  clientId: string;
-  description: string;
-  issueDate: string;
-  dueDate: string;
-  amount: number;
-  status: SavedInvoiceStatus;
-}
+export type { NewInvoiceInput, SavedInvoice } from "./types";
+export type SavedInvoiceStatus = SavedInvoice["status"];
 
 const STORAGE_KEY = "quotiq.invoices";
 const listeners = new Set<() => void>();
@@ -65,6 +43,10 @@ function readInvoices(): SavedInvoice[] {
     }
   }
   return cachedInvoices;
+}
+
+export function getAllInvoices(): SavedInvoice[] {
+  return readInvoices();
 }
 
 function snapshot() {

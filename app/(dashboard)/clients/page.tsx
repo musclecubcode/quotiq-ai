@@ -7,11 +7,11 @@ import { Card } from "@/components/ui/Card";
 import { ClientStatusBadge } from "@/components/ui/Badge";
 import { Table, TableHead, TableBody, Th, Tr, Td } from "@/components/ui/Table";
 import { IconMapPin, IconPlus, IconUsers } from "@/components/icons";
-import { useClients } from "@/lib/client-storage";
+import { useCloudClients } from "@/components/auth/CloudDataProvider";
 import { formatDate, getClientFullName, getInitials } from "@/lib/utils";
 
 export default function ClientsPage() {
-  const { clients } = useClients();
+  const { clients } = useCloudClients();
 
   if (clients.length === 0) {
     return (

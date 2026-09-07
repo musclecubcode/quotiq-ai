@@ -7,14 +7,12 @@ import { InvoiceStatusBadge } from "@/components/ui/Badge";
 import { Table, TableHead, TableBody, Th, Tr, Td } from "@/components/ui/Table";
 import { IconPlus } from "@/components/icons";
 import { formatCurrency, formatDate, getClientFullName } from "@/lib/utils";
-import { useClients } from "@/lib/client-storage";
-import { useWorkOrdersRepository } from "@/lib/workorder-repository";
-import { useInvoicesRepository } from "@/lib/invoice-repository";
+import { useCloudClients, useCloudInvoices, useCloudWorkOrders } from "@/components/auth/CloudDataProvider";
 
 export default function InvoicesPage() {
-  const { clients } = useClients();
-  const { workOrders } = useWorkOrdersRepository();
-  const { invoices } = useInvoicesRepository();
+  const { clients } = useCloudClients();
+  const { workOrders } = useCloudWorkOrders();
+  const { invoices } = useCloudInvoices();
 
   const outstanding = invoices
     .filter((invoice) => invoice.status === "sent" || invoice.status === "overdue")

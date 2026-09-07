@@ -5,15 +5,16 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/Field";
-import { useClients } from "@/lib/client-storage";
+import { useCloudClients } from "@/components/auth/CloudDataProvider";
 import { US_STATES } from "@/lib/us-states";
 
 export function CreateClientForm() {
   const router = useRouter();
-  const { addClient } = useClients();
+  const { addClient } = useCloudClients();
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const data = new FormData(event.currentTarget);
@@ -35,20 +36,27 @@ export function CreateClientForm() {
       return;
     }
 
-    const client = addClient({
-      firstName,
-      lastName,
-      phone,
-      email,
-      address,
-      city,
-      state,
-      zip,
-      company: company || undefined,
-      notes: notes || undefined,
-    });
-
-    router.push(`/clients/${client.id}`);
+    setBusy(true);
+    setError(null);
+    try {
+      const client = await addClient({
+        firstName,
+        lastName,
+        phone,
+        email,
+        address,
+        city,
+        state,
+        zip,
+        company: company || undefined,
+        notes: notes || undefined,
+      });
+      router.push(`/clients/${client.id}`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to create the client.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -116,8 +124,8 @@ export function CreateClientForm() {
         )}
 
         <div className="flex gap-3 sm:col-span-2">
-          <Button type="submit">Create Client</Button>
-          <Button type="button" variant="secondary" onClick={() => router.push("/clients")}>
+          <Button type="submit" disabled={busy}>{busy ? "Creating…" : "Create Client"}</Button>
+          <Button type="button" variant="secondary" disabled={busy} onClick={() => router.push("/clients")}>
             Cancel
           </Button>
         </div>

@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CloudDataProvider } from "@/components/auth/CloudDataProvider";
 import { ClientWorkspace } from "./ClientWorkspace";
 import { createClient, createWorkOrder, resetRepositoryCacheForTests } from "@/lib/workorder-repository";
 
@@ -36,7 +37,7 @@ describe("ClientWorkspace", () => {
       scheduledDate: "2026-09-10",
     });
 
-    render(<ClientWorkspace clientId={client.id} />);
+    render(<CloudDataProvider initialData={{ clients: [client], workOrders: [workOrder], invoices: [] }}><ClientWorkspace clientId={client.id} /></CloudDataProvider>);
     await user.click(screen.getByRole("button", { name: "Work Orders (1)" }));
 
     expect(screen.getByRole("link", { name: workOrder.title })).toHaveAttribute(

@@ -161,15 +161,22 @@ create table invoices (
   company_id text not null,
   id text not null,
   work_order_id text not null,
+  client_id text not null,
   number text not null,
   status text not null,
+  description text not null default '',
+  issue_date date not null,
+  due_date date not null,
+  amount numeric(14,2) not null default 0 check (amount >= 0),
+  amount_paid numeric(14,2) not null default 0 check (amount_paid >= 0 and amount_paid <= amount),
   issuer_snapshot jsonb,
   issued_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   primary key (company_id, id),
   unique (company_id, number),
-  foreign key (company_id, work_order_id) references work_orders(company_id, id) on delete restrict
+  foreign key (company_id, work_order_id) references work_orders(company_id, id) on delete restrict,
+  foreign key (company_id, client_id) references clients(company_id, id) on delete restrict
 );
 
 -- Defense in depth. The server must SET LOCAL app.company_id after verifying
