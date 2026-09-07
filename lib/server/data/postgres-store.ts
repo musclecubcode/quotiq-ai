@@ -253,7 +253,7 @@ export class PostgresProductionDataStore implements ProductionDataStore {
       const amountPaid = input.status === "paid" ? input.amount : 0;
       const result = await db.query(
         `insert into invoices (company_id,id,work_order_id,client_id,number,status,description,issue_date,due_date,amount,amount_paid,issued_at,created_at,updated_at)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$8,now(),now()) returning *`,
+         values ($1,$2,$3,$4,$5,$6,$7,$8::date,$9::date,$10,$11,$8::date::timestamptz,now(),now()) returning *`,
         [companyId,id(),input.workOrderId,input.clientId,number,input.status,required(input.description,"Description"),input.issueDate,input.dueDate,input.amount,amountPaid]
       );
       return invoice(result.rows[0]);
@@ -292,7 +292,7 @@ export class PostgresProductionDataStore implements ProductionDataStore {
       for(const item of data.measurements) await db.query(`insert into work_order_measurements (company_id,id,work_order_id,type,label,value,unit,width,height,quantity,notes,created_at) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,[companyId,item.id,item.workOrderId,item.type,item.label,item.value??null,item.unit,item.width??null,item.height??null,item.quantity,item.notes??null,item.createdAt]);
       for(const item of data.notes) await db.query(`insert into work_order_notes (company_id,id,work_order_id,body,visibility,created_at,updated_at) values ($1,$2,$3,$4,$5,$6,$7)`,[companyId,item.id,item.workOrderId,item.body,item.visibility,item.createdAt,item.updatedAt]);
       for(const item of data.attachments) await db.query(`insert into work_order_attachments (company_id,id,work_order_id,kind,storage_key,file_name,mime_type,size_bytes,caption,description,uploaded_at) values ($1,$2,$3,$4,null,$5,$6,$7,$8,$9,$10)`,[companyId,item.id,item.workOrderId,item.kind,item.fileName,item.mimeType,item.size,item.caption??null,item.description??null,item.uploadedAt]);
-      for(const item of data.invoices) await db.query(`insert into invoices (company_id,id,work_order_id,client_id,number,status,description,issue_date,due_date,amount,amount_paid,issued_at,created_at,updated_at) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$8,$12,$12)`,[companyId,item.id,item.workOrderId,item.clientId,item.number,item.status,item.description,item.issueDate,item.dueDate,item.amount,item.amountPaid,item.createdAt]);
+      for(const item of data.invoices) await db.query(`insert into invoices (company_id,id,work_order_id,client_id,number,status,description,issue_date,due_date,amount,amount_paid,issued_at,created_at,updated_at) values ($1,$2,$3,$4,$5,$6,$7,$8::date,$9::date,$10,$11,$8::date::timestamptz,$12::timestamptz,$12::timestamptz)`,[companyId,item.id,item.workOrderId,item.clientId,item.number,item.status,item.description,item.issueDate,item.dueDate,item.amount,item.amountPaid,item.createdAt]);
       const verified=await this.snapshot(db,companyId);if(!verified||analyzeBrowserImport(verified,data)!=="already_imported") throw new DataLayerError("CONFLICT","Imported data could not be verified.");
       return {companyId,imported:importCounts(data),verifiedAt:new Date().toISOString(),localDataRetained:true,idempotentReplay:false};
     });
