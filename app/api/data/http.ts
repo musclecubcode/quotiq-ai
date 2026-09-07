@@ -7,6 +7,14 @@ export function dataErrorResponse(error: unknown) {
     return Response.json({ error: error.message, code: error.code }, { status });
   }
   if (error instanceof CompanyProfileValidationError || error instanceof TypeError || error instanceof SyntaxError) return Response.json({ error: "The submitted data is invalid.", code: "VALIDATION" }, { status: 400 });
+  const details = error as { name?: unknown; code?: unknown; constraint?: unknown; table?: unknown; routine?: unknown };
+  console.error("Unexpected data-layer failure", {
+    name: typeof details?.name === "string" ? details.name : "UnknownError",
+    code: typeof details?.code === "string" ? details.code : "UNKNOWN",
+    constraint: typeof details?.constraint === "string" ? details.constraint : undefined,
+    table: typeof details?.table === "string" ? details.table : undefined,
+    routine: typeof details?.routine === "string" ? details.routine : undefined,
+  });
   return Response.json({ error: "The request could not be completed." }, { status: 500 });
 }
 
