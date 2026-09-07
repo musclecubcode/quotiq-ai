@@ -7,7 +7,8 @@ export function cn(...classes: ClassValue[]): string {
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
-  maximumFractionDigits: 0,
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
 
 export function formatCurrency(value: number): string {

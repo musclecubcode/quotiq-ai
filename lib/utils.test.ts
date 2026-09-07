@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDate } from "./utils";
+import { formatCurrency, formatDate } from "./utils";
+
+describe("formatCurrency", () => {
+  it("keeps invoice cents without adding unnecessary zeros", () => {
+    expect(formatCurrency(123.45)).toBe("$123.45");
+    expect(formatCurrency(321)).toBe("$321");
+  });
+});
 
 describe("formatDate", () => {
   it("renders a date-only value as the selected calendar date", () => {
